@@ -1,58 +1,50 @@
 #include <SFML/Graphics.hpp>
+#include <TGUI/Backend/SFML-Graphics.hpp>
+#include <TGUI/TGUI.hpp>
+#include <iostream>
 
 int main()
 {
-    unsigned int width = 1000;
-    unsigned int height = 1000;
-    
-    sf::RenderWindow window(sf::VideoMode(sf::Vector2u(width, height)), "Treadmill GUI");
+    sf::RenderWindow window(sf::VideoMode(sf::Vector2u(1000, 1000)), "Treadmill GUI");
     window.setFramerateLimit(120);
 
-    sf::Font font;
-    if (!font.openFromFile("C:/Users/cecic/Desktop/Projects/Class_Projects/treadmill-gui/src/arial.ttf"))
-        return -1;
+    tgui::Gui gui(window); // TGUI GUI object
 
-    // title text
-    sf::Text title(font, "Treadmill Control", 100);
-    title.setFillColor(sf::Color::Black);
-    title.setPosition(sf::Vector2f(0.1f * width, 0.05f * height));
+    // Title label
+    auto title = tgui::Label::create("Treadmill Control");
+    title->setTextSize(48);
+    title->setPosition(50, 20);
+    gui.add(title);
 
-    // text box mockup
-    sf::RectangleShape inputBox(sf::Vector2f(400.f, 60.f));
-    inputBox.setPosition(sf::Vector2f(0.1f * width, 0.3f * height));
-    inputBox.setFillColor(sf::Color::White);
-    inputBox.setOutlineColor(sf::Color::Black);
-    inputBox.setOutlineThickness(3.f);
+    // Text box (edit box)
+    auto inputBox = tgui::EditBox::create();
+    inputBox->setSize(400, 50);
+    inputBox->setPosition(50, 100);
+    gui.add(inputBox);
 
-    // button mockup
-    sf::RectangleShape submitButton(sf::Vector2f(150.f, 60.f));
-    submitButton.setPosition(sf::Vector2f(0.1f * width, 0.45f * height));
-    submitButton.setFillColor(sf::Color::White);
-    submitButton.setOutlineColor(sf::Color::Black);
-    submitButton.setOutlineThickness(3.f);
+    // Button
+    auto submitButton = tgui::Button::create("Submit");
+    submitButton->setSize(150, 50);
+    submitButton->setPosition(50, 180);
+    gui.add(submitButton);
 
-    // button text
-    sf::Text buttonText(font, "Submit", 30);
-    buttonText.setFillColor(sf::Color::Black);
-    buttonText.setPosition(sf::Vector2f(
-        submitButton.getPosition().x + 20.f,
-        submitButton.getPosition().y + 10.f
-    ));
+    // Button callback
+    submitButton->onPress([inputBox]()
+                          { std::cout << "Input text: " << inputBox->getText().toStdString() << "\n"; });
 
-    // rendering
     while (window.isOpen())
     {
-        while (const std::optional event = window.pollEvent())
-        {
-            if (event->is<sf::Event::Closed>())
-                window.close();
-        }
+        // sf::Event event;
+        // while (window.pollEvent(event))
+        // {
+        //     if (event.type == sf::Event::Closed)
+        //         window.close();
+
+        //     gui.handleEvent(event); // Let TGUI handle the event
+        // }
 
         window.clear(sf::Color::White);
-        window.draw(title);
-        window.draw(inputBox);
-        window.draw(submitButton);
-        window.draw(buttonText);
+        gui.draw(); // Draw all TGUI widgets
         window.display();
     }
 
