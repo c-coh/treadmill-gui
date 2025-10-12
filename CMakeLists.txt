@@ -27,9 +27,21 @@ FetchContent_Declare(
   GIT_TAG v1.11.0
 )
 
-add_executable(main src/main.cpp)
+add_executable(main
+  src/main.cpp
+  src/TreadmillApp.cpp
+  src/SpeedControlPanel.cpp
+  src/DataPanel.cpp
+  src/ThemeManager.cpp
+)
+
 target_compile_features(main PRIVATE cxx_std_17)
-target_link_libraries(main PRIVATE SFML::Graphics
+
+# Add the src directory to the include path so header files can be found
+target_include_directories(main PRIVATE src)
+
+target_link_libraries(main PRIVATE
+  SFML::Graphics
   SFML::Window
   SFML::System
   TGUI::TGUI
