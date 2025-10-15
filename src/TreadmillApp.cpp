@@ -1,5 +1,6 @@
 #include "TreadmillApp.h"
 #include "SpeedControlPanel.h"
+#include "TestingPanel.h"
 #include "DataPanel.h"
 #include "ThemeManager.h"
 #include <iostream>
@@ -16,10 +17,6 @@ bool TreadmillApp::initialize()
 {
     try
     {
-        std::cout << "Initializing Treadmill GUI..." << std::endl;
-        std::cout << "Window created successfully" << std::endl;
-        std::cout << "GUI initialized successfully" << std::endl;
-
         // Initialize theme manager
         m_themeManager = std::make_unique<ThemeManager>();
         m_themeManager->loadTheme();
@@ -45,25 +42,39 @@ bool TreadmillApp::initialize()
         m_dataPanel = std::make_unique<DataPanel>();
         m_dataPanel->initialize(m_gui);
 
+        m_TestingPanel = std::make_unique<TestingPanel>();
+        m_TestingPanel->initialize(m_gui);
+
         // Setup event callbacks
         m_speedPanel->setStartCallback([this](const std::string &speed)
                                        {
-            std::cout << "Starting treadmill at speed: " << speed << " mph" << std::endl;
-            m_dataPanel->addStatusMessage("Starting at " + speed + " mph"); });
+            std::cout << "Starting treadmill at speed: " << speed << std::endl;
+            m_dataPanel->addStatusMessage("Starting at " + speed); });
 
         m_speedPanel->setStopCallback([this]()
                                       {
-            std::cout << "STOP" << std::endl;
-            m_dataPanel->addStatusMessage("EMERGENCY STOP ACTIVATED"); });
+            std::cout << "Stop" << std::endl;
+            m_dataPanel->addStatusMessage("Treadmill stopped"); });
 
-        m_speedPanel->setDownloadCallback([this]()
+        m_speedPanel->setDownloadSpeedButtonCallback([this]()
                                           {
-            std::cout << "Downloading force feedback..." << std::endl;
-            m_dataPanel->addStatusMessage("Downloading data..."); });
+            std::cout << "Downloading speed config..." << std::endl;
+            m_dataPanel->addStatusMessage("Downloading speed config...");
+        });
+
+        m_speedPanel->setUploadFileCallback([this](const std::string &filename, const std::string &content)
+                                            {
+                                                std::cout << "Uploaded file: " << filename << " (" << content.length() << " characters)" << std::endl;
+                                                m_dataPanel->addStatusMessage("Uploaded file: " + filename);
+                                                m_dataPanel->addStatusMessage("File size: " + std::to_string(content.length()) + " characters");
+                                                
+                                                // Display the file content in the speed text area
+                                                m_speedPanel->getSpeedInput()->setText(content);
+                                                m_dataPanel->addStatusMessage("File content loaded into speed input"); });
 
         updateResponsiveSizes();
 
-        std::cout << "All components initialized. Ready to start..." << std::endl;
+        std::cout << "All components initialized." << std::endl;
         m_running = true;
         return true;
     }
@@ -110,8 +121,8 @@ void TreadmillApp::handleWindowResize(const sf::Event::Resized &resizeEvent)
 {
     // Update the GUI view to match new window size - SFML 3.x syntax
     m_gui.setAbsoluteView(tgui::FloatRect{0.f, 0.f,
-                                        static_cast<float>(resizeEvent.size.x),
-                                        static_cast<float>(resizeEvent.size.y)});
+                                          static_cast<float>(resizeEvent.size.x),
+                                          static_cast<float>(resizeEvent.size.y)});
     updateResponsiveSizes();
 
     std::cout << "Window resized to: " << resizeEvent.size.x

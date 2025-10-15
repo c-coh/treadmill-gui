@@ -8,6 +8,7 @@
 // Forward declarations
 class SpeedControlPanel;
 class DataPanel;
+class TestingPanel;
 class ThemeManager;
 
 class TreadmillApp
@@ -30,6 +31,7 @@ private:
 
     // UI Components
     std::unique_ptr<SpeedControlPanel> m_speedPanel;
+    std::unique_ptr<TestingPanel> m_TestingPanel;
     std::unique_ptr<DataPanel> m_dataPanel;
     std::unique_ptr<ThemeManager> m_themeManager;
 

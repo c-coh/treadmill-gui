@@ -9,7 +9,7 @@ void SpeedControlPanel::initialize(tgui::Gui &gui)
 {
     // Create main panel
     m_panel = tgui::Panel::create();
-    m_panel->setSize("45%", "45%");
+    m_panel->setSize("45%", "60%");
     m_panel->setPosition("4%", "10%");
 
     // Speed label
@@ -19,24 +19,31 @@ void SpeedControlPanel::initialize(tgui::Gui &gui)
 
     // Speed input
     m_speedInput = tgui::TextArea::create();
-    m_speedInput->setSize("85%", "40%");
+    m_speedInput->setSize("85%", "45%");
     m_speedInput->setPosition("5%", "20%");
     m_speedInput->setDefaultText("Enter speed");
 
     // Start button
-    m_startButton = tgui::Button::create("START TREADMILL");
-    m_startButton->setSize("30%", "10%");
+    m_startButton = tgui::Button::create("START");
+    m_startButton->setSize("20%", "10%");
     m_startButton->setPosition("5%", "70%");
 
     // Stop button
     m_stopButton = tgui::Button::create("STOP");
     m_stopButton->setSize("20%", "10%");
-    m_stopButton->setPosition("50%", "70%");
+    m_stopButton->setPosition("30%", "70%");
 
-    // Download button
-    m_downloadButton = tgui::Button::create("DOWNLOAD DATA");
-    m_downloadButton->setSize("45%", "10%");
-    m_downloadButton->setPosition("27.5%", "85%");
+    // Upload Speed button
+    m_uploadSpeedButton = tgui::Button::create("UPLOAD SPEED CONFIG");
+    m_uploadSpeedButton->setSize("35%", "10%");
+    m_uploadSpeedButton->setPosition("5%", "85%");
+
+    // Download Speed button
+    m_downloadSpeedButton = tgui::Button::create("DOWNLOAD SPEED CONFIG");
+    m_downloadSpeedButton->setSize("35%", "10%");
+    m_downloadSpeedButton->setPosition("45%", "85%");
+
+    // File dialog will be created fresh each time it's needed
 
     // Setup styling and add to panel
     setupStyling();
@@ -47,10 +54,13 @@ void SpeedControlPanel::initialize(tgui::Gui &gui)
     m_panel->add(m_speedInput);
     m_panel->add(m_startButton);
     m_panel->add(m_stopButton);
-    m_panel->add(m_downloadButton);
+    m_panel->add(m_uploadSpeedButton);
+    m_panel->add(m_downloadSpeedButton);
 
     // Add panel to GUI
     gui.add(m_panel);
+
+    // File dialog will be created and added when needed
 }
 
 void SpeedControlPanel::setupStyling()
@@ -90,20 +100,28 @@ void SpeedControlPanel::setupStyling()
     m_stopButton->getRenderer()->setBorders({1});
     m_stopButton->getRenderer()->setRoundedBorderRadius(8);
 
-    // Download button styling
-    m_downloadButton->getRenderer()->setBackgroundColor(ThemeManager::Colors::ButtonDownload);
-    m_downloadButton->getRenderer()->setBackgroundColorHover(tgui::Color{140, 200, 90});
-    m_downloadButton->getRenderer()->setBackgroundColorDown(tgui::Color{100, 160, 50});
-    m_downloadButton->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
-    m_downloadButton->getRenderer()->setBorderColor(tgui::Color{130, 190, 80});
-    m_downloadButton->getRenderer()->setBorders({1});
-    m_downloadButton->getRenderer()->setRoundedBorderRadius(8);
+    m_uploadSpeedButton->getRenderer()->setBackgroundColor(ThemeManager::Colors::ButtonDownload);
+    m_uploadSpeedButton->getRenderer()->setBackgroundColorHover(tgui::Color{140, 200, 90});
+    m_uploadSpeedButton->getRenderer()->setBackgroundColorDown(tgui::Color{100, 160, 50});
+    m_uploadSpeedButton->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
+    m_uploadSpeedButton->getRenderer()->setBorderColor(tgui::Color{130, 190, 80});
+    m_uploadSpeedButton->getRenderer()->setBorders({1});
+    m_uploadSpeedButton->getRenderer()->setRoundedBorderRadius(8);
+
+    m_downloadSpeedButton->getRenderer()->setBackgroundColor(ThemeManager::Colors::ButtonDownload);
+    m_downloadSpeedButton->getRenderer()->setBackgroundColorHover(tgui::Color{140, 200, 90});
+    m_downloadSpeedButton->getRenderer()->setBackgroundColorDown(tgui::Color{100, 160, 50});
+    m_downloadSpeedButton->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
+    m_downloadSpeedButton->getRenderer()->setBorderColor(tgui::Color{130, 190, 80});
+    m_downloadSpeedButton->getRenderer()->setBorders({1});
+    m_downloadSpeedButton->getRenderer()->setRoundedBorderRadius(8);
 }
 
 void SpeedControlPanel::connectEvents()
 {
     m_startButton->onPress([this]()
                            {
+        readSpeedCommands();
         if (m_startCallback) {
             std::string speed = m_speedInput->getText().toStdString();
             m_startCallback(speed);
@@ -115,11 +133,20 @@ void SpeedControlPanel::connectEvents()
             m_stopCallback();
         } });
 
-    m_downloadButton->onPress([this]()
-                              {
-        if (m_downloadCallback) {
-            m_downloadCallback();
+    m_uploadSpeedButton->onPress([this]()
+                                 {
+        openFileDialog();
+        if (m_uploadSpeedButtonCallback) {
+            m_uploadSpeedButtonCallback();
         } });
+
+    m_downloadSpeedButton->onPress([this]()
+                                   {
+        if (m_downloadSpeedButtonCallback) {
+            m_downloadSpeedButtonCallback();
+        } });
+
+    // File dialog events are now handled in openFileDialog() method
 }
 
 void SpeedControlPanel::setStartCallback(std::function<void(const std::string &)> callback)
@@ -132,7 +159,90 @@ void SpeedControlPanel::setStopCallback(std::function<void()> callback)
     m_stopCallback = callback;
 }
 
-void SpeedControlPanel::setDownloadCallback(std::function<void()> callback)
+void SpeedControlPanel::setUploadSpeedButtonCallback(std::function<void()> callback)
 {
-    m_downloadCallback = callback;
+    m_uploadSpeedButtonCallback = callback;
+}
+
+void SpeedControlPanel::setDownloadSpeedButtonCallback(std::function<void()> callback)
+{
+    m_downloadSpeedButtonCallback = callback;
+}
+
+void SpeedControlPanel::setUploadFileCallback(std::function<void(const std::string &, const std::string &)> callback)
+{
+    m_uploadFileCallback = callback;
+}
+
+void SpeedControlPanel::openFileDialog()
+{
+    // Remove the old file dialog if it exists
+    if (m_fileDialog && m_fileDialog->getParent())
+    {
+        m_fileDialog->getParent()->remove(m_fileDialog);
+    }
+
+    // Create a new file dialog each time to avoid state issues
+    m_fileDialog = tgui::FileDialog::create();
+    m_fileDialog->setFileTypeFilters({{"Text files", {"*.txt"}},
+                                      {"Config files", {"*.cfg", "*.conf"}},
+                                      {"All files", {"*.*"}}});
+    m_fileDialog->setSelectingDirectory(false);
+    m_fileDialog->setMultiSelect(false);
+
+    // Set up the file select callback
+    m_fileDialog->onFileSelect([this](const std::vector<tgui::Filesystem::Path> &files)
+                               {
+        if (!files.empty() && m_uploadFileCallback) {
+            std::string filepath = files[0].asString().toStdString();
+            try {
+                std::string content = readFileContent(filepath);
+                std::string filename = files[0].getFilename().toStdString();
+                m_uploadFileCallback(filename, content);
+            } catch (const std::exception& e) {
+                std::cerr << "Error reading file: " << e.what() << std::endl;
+            }
+        }
+        // Remove the dialog after use
+        if (m_fileDialog && m_fileDialog->getParent()) {
+            m_fileDialog->getParent()->remove(m_fileDialog);
+        } });
+
+    // Set up the close callback
+    m_fileDialog->onClose([this]()
+                          {
+        if (m_fileDialog && m_fileDialog->getParent()) {
+            m_fileDialog->getParent()->remove(m_fileDialog);
+        } });
+
+    // Add to GUI and show
+    if (m_panel && m_panel->getParent())
+    {
+        m_panel->getParent()->add(m_fileDialog);
+    }
+}
+
+std::string SpeedControlPanel::readFileContent(const std::string &filepath)
+{
+    std::ifstream file(filepath);
+    if (!file.is_open())
+    {
+        throw std::runtime_error("Could not open file: " + filepath);
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    return buffer.str();
+}
+
+void SpeedControlPanel::readSpeedCommands()
+{
+    // // Get text from text area
+    // std::string commands = m_speedInput->getText().toStdString();
+    // std::istringstream stream(commands);
+    // std::string line;
+    // while (std::getline(stream, line)) {
+    //     std::cout << "Running: " << line << std::endl;
+    // }
+
 }

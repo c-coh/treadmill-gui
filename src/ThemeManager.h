@@ -26,6 +26,7 @@ public:
         static const tgui::Color BorderSecondary;
         static const tgui::Color TextPrimary;
         static const tgui::Color TextSecondary;
+        static const tgui::Color BorderTertiary;
         static const tgui::Color ButtonStart;
         static const tgui::Color ButtonStop;
         static const tgui::Color ButtonDownload;

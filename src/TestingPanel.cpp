@@ -9,45 +9,36 @@ void TestingPanel::initialize(tgui::Gui &gui)
 {
     // Create main panel
     m_panel = tgui::Panel::create();
-    m_panel->setSize("45%", "45%");
-    m_panel->setPosition("54%", "60%");
+    m_panel->setSize("45%", "20%");
+    m_panel->setPosition("4%", "75%");
 
-    // Speed label
-    m_speedLabel = tgui::Label::create("Speed Control");
-    m_speedLabel->setTextSize(18);
-    m_speedLabel->setPosition("5%", "8%");
+    // Debugging panel
+    m_debugLabel = tgui::Label::create("Debugging Panel");
+    m_debugLabel->setTextSize(18);
+    m_debugLabel->setPosition("5%", "8%");
 
-    // Speed input
-    m_speedInput = tgui::TextArea::create();
-    m_speedInput->setSize("85%", "40%");
-    m_speedInput->setPosition("5%", "20%");
-    m_speedInput->setDefaultText("Enter speed");
+    // Debug 1
+    m_debug1Button = tgui::Button::create("DEBUG SPEED");
+    m_debug1Button->setSize("28%", "25%");
+    m_debug1Button->setPosition("5%", "50%");
 
-    // Start button
-    m_startButton = tgui::Button::create("START TREADMILL");
-    m_startButton->setSize("30%", "10%");
-    m_startButton->setPosition("5%", "70%");
+    m_debug2Button = tgui::Button::create("DEBUG FORCE DATA");
+    m_debug2Button->setSize("28%", "25%");
+    m_debug2Button->setPosition("36%", "50%");
 
-    // Stop button
-    m_stopButton = tgui::Button::create("STOP");
-    m_stopButton->setSize("20%", "10%");
-    m_stopButton->setPosition("50%", "70%");
-
-    // Download button
-    m_downloadButton = tgui::Button::create("DOWNLOAD DATA");
-    m_downloadButton->setSize("45%", "10%");
-    m_downloadButton->setPosition("27.5%", "85%");
+    m_debug3Button = tgui::Button::create("DEBUG DATA");
+    m_debug3Button->setSize("28%", "25%");
+    m_debug3Button->setPosition("67%", "50%");
 
     // Setup styling and add to panel
     setupStyling();
     connectEvents();
 
     // Add widgets to panel
-    m_panel->add(m_speedLabel);
-    m_panel->add(m_speedInput);
-    m_panel->add(m_startButton);
-    m_panel->add(m_stopButton);
-    m_panel->add(m_downloadButton);
+    m_panel->add(m_debugLabel);
+    m_panel->add(m_debug1Button);
+    m_panel->add(m_debug2Button);
+    m_panel->add(m_debug3Button);
 
     // Add panel to GUI
     gui.add(m_panel);
@@ -57,82 +48,80 @@ void TestingPanel::setupStyling()
 {
     // Panel styling
     m_panel->getRenderer()->setBackgroundColor(ThemeManager::Colors::PanelBackground);
-    m_panel->getRenderer()->setBorderColor(ThemeManager::Colors::BorderPrimary);
+    m_panel->getRenderer()->setBorderColor(ThemeManager::Colors::BorderTertiary);
     m_panel->getRenderer()->setBorders({2});
     m_panel->getRenderer()->setRoundedBorderRadius(10);
 
     // Label styling
-    m_speedLabel->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
-
-    // Input styling
-    m_speedInput->getRenderer()->setBackgroundColor(ThemeManager::Colors::InputBackground);
-    m_speedInput->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
-    m_speedInput->getRenderer()->setBorderColor(tgui::Color{100, 100, 110});
-    m_speedInput->getRenderer()->setBorders({1});
-    m_speedInput->getRenderer()->setRoundedBorderRadius(5);
+    m_debugLabel->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
 
     // Start button styling
-    m_startButton->getRenderer()->setBackgroundColor(ThemeManager::Colors::ButtonStart);
-    m_startButton->getRenderer()->setBackgroundColorHover(tgui::Color{100, 150, 200});
-    m_startButton->getRenderer()->setBackgroundColorDown(tgui::Color{50, 110, 160});
-    m_startButton->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
-    m_startButton->getRenderer()->setBorderColor(tgui::Color{90, 140, 190});
-    m_startButton->getRenderer()->setBorders({1});
-    m_startButton->getRenderer()->setRoundedBorderRadius(8);
-    m_startButton->getRenderer()->setTextSize(14);
+    m_debug1Button->getRenderer()->setBackgroundColor(ThemeManager::Colors::ButtonStart);
+    m_debug1Button->getRenderer()->setBackgroundColorHover(tgui::Color{100, 150, 200});
+    m_debug1Button->getRenderer()->setBackgroundColorDown(tgui::Color{50, 110, 160});
+    m_debug1Button->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
+    m_debug1Button->getRenderer()->setBorderColor(tgui::Color{90, 140, 190});
+    m_debug1Button->getRenderer()->setBorders({1});
+    m_debug1Button->getRenderer()->setRoundedBorderRadius(8);
+    m_debug1Button->getRenderer()->setTextSize(14);
 
     // Stop button styling
-    m_stopButton->getRenderer()->setBackgroundColor(ThemeManager::Colors::ButtonStop);
-    m_stopButton->getRenderer()->setBackgroundColorHover(tgui::Color{200, 90, 90});
-    m_stopButton->getRenderer()->setBackgroundColorDown(tgui::Color{160, 50, 50});
-    m_stopButton->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
-    m_stopButton->getRenderer()->setBorderColor(tgui::Color{190, 80, 80});
-    m_stopButton->getRenderer()->setBorders({1});
-    m_stopButton->getRenderer()->setRoundedBorderRadius(8);
+    m_debug2Button->getRenderer()->setBackgroundColor(ThemeManager::Colors::ButtonStart);
+    m_debug2Button->getRenderer()->setBackgroundColorHover(tgui::Color{200, 90, 90});
+    m_debug2Button->getRenderer()->setBackgroundColorDown(tgui::Color{160, 50, 50});
+    m_debug2Button->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
+    m_debug2Button->getRenderer()->setBorderColor(tgui::Color{90, 140, 190});
+    m_debug2Button->getRenderer()->setBorders({1});
+    m_debug2Button->getRenderer()->setRoundedBorderRadius(8);
 
     // Download button styling
-    m_downloadButton->getRenderer()->setBackgroundColor(ThemeManager::Colors::ButtonDownload);
-    m_downloadButton->getRenderer()->setBackgroundColorHover(tgui::Color{140, 200, 90});
-    m_downloadButton->getRenderer()->setBackgroundColorDown(tgui::Color{100, 160, 50});
-    m_downloadButton->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
-    m_downloadButton->getRenderer()->setBorderColor(tgui::Color{130, 190, 80});
-    m_downloadButton->getRenderer()->setBorders({1});
-    m_downloadButton->getRenderer()->setRoundedBorderRadius(8);
+    m_debug3Button->getRenderer()->setBackgroundColor(ThemeManager::Colors::ButtonStart);
+    m_debug3Button->getRenderer()->setBackgroundColorHover(tgui::Color{140, 200, 90});
+    m_debug3Button->getRenderer()->setBackgroundColorDown(tgui::Color{100, 160, 50});
+    m_debug3Button->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
+    m_debug3Button->getRenderer()->setBorderColor(tgui::Color{90, 140, 190});
+    m_debug3Button->getRenderer()->setBorders({1});
+    m_debug3Button->getRenderer()->setRoundedBorderRadius(8);
 }
 
 void TestingPanel::connectEvents()
 {
-    m_startButton->onPress([this]()
-                           {
-        if (m_startCallback) {
-            std::string speed = m_speedInput->getText().toStdString();
-            m_startCallback(speed);
+    m_debug1Button->onPress([this]()
+                            {
+        if (m_debug1ButtonCallback) {
+            m_debug1ButtonCallback();
         } });
 
-    m_stopButton->onPress([this]()
-                          {
-        if (m_stopCallback) {
-            m_stopCallback();
+    m_debug2Button->onPress([this]()
+                            {
+        if (m_debug2ButtonCallback) {
+            m_debug2ButtonCallback();
         } });
 
-    m_downloadButton->onPress([this]()
-                              {
-        if (m_downloadCallback) {
-            m_downloadCallback();
+    m_debug3Button->onPress([this]()
+                            {
+        if (m_debug3ButtonCallback) {
+            m_debug3ButtonCallback();
         } });
 }
 
-void TestingPanel::setStartCallback(std::function<void(const std::string &)> callback)
+void TestingPanel::setDebug1Callback(std::function<void()> callback)
 {
-    m_startCallback = callback;
+    m_debug1ButtonCallback = callback;
 }
 
-void TestingPanel::setStopCallback(std::function<void()> callback)
+void TestingPanel::setDebug2Callback(std::function<void()> callback)
 {
-    m_stopCallback = callback;
+    m_debug2ButtonCallback = callback;
 }
 
-void TestingPanel::setDownloadCallback(std::function<void()> callback)
+void TestingPanel::setDebug3Callback(std::function<void()> callback)
 {
-    m_downloadCallback = callback;
+    m_debug3ButtonCallback = callback;
+}
+
+void TestingPanel::updateResponsiveSize(const sf::Vector2u &windowSize)
+{
+    // Panel is already using percentage-based sizing, so it will auto-resize
+    // Any additional responsive updates can go here if needed
 }

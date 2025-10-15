@@ -6,11 +6,12 @@ const tgui::Color ThemeManager::Colors::Background{30, 30, 35};
 const tgui::Color ThemeManager::Colors::PanelBackground{45, 45, 50};
 const tgui::Color ThemeManager::Colors::BorderPrimary{70, 130, 180};
 const tgui::Color ThemeManager::Colors::BorderSecondary{180, 130, 70};
+const tgui::Color ThemeManager::Colors::BorderTertiary{130, 180, 120};
 const tgui::Color ThemeManager::Colors::TextPrimary{220, 220, 220};
 const tgui::Color ThemeManager::Colors::TextSecondary{200, 200, 200};
 const tgui::Color ThemeManager::Colors::ButtonStart{70, 130, 180};
 const tgui::Color ThemeManager::Colors::ButtonStop{180, 70, 70};
-const tgui::Color ThemeManager::Colors::ButtonDownload{120, 180, 70};
+const tgui::Color ThemeManager::Colors::ButtonDownload{100, 160, 50};
 const tgui::Color ThemeManager::Colors::InputBackground{60, 60, 65};
 
 ThemeManager::ThemeManager() : m_themeLoaded(false), m_fontLoaded(false)

@@ -31,6 +31,7 @@ add_executable(main
   src/main.cpp
   src/TreadmillApp.cpp
   src/SpeedControlPanel.cpp
+  src/TestingPanel.cpp
   src/DataPanel.cpp
   src/ThemeManager.cpp
 )
