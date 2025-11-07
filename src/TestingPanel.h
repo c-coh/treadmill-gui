@@ -11,7 +11,6 @@ public:
     ~TestingPanel();
 
     void initialize(tgui::Gui &gui);
-    void updateResponsiveSize(const sf::Vector2u &windowSize);
 
     void setDebug1Callback(std::function<void()> callback);
     void setDebug2Callback(std::function<void()> callback);

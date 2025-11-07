@@ -7,7 +7,7 @@ TestingPanel::~TestingPanel() = default;
 
 void TestingPanel::initialize(tgui::Gui &gui)
 {
-    // Create main panel
+    // Main panel
     m_panel = tgui::Panel::create();
     m_panel->setSize("45%", "20%");
     m_panel->setPosition("4%", "75%");
@@ -17,7 +17,7 @@ void TestingPanel::initialize(tgui::Gui &gui)
     m_debugLabel->setTextSize(18);
     m_debugLabel->setPosition("5%", "8%");
 
-    // Debug 1
+    // Debugging buttons
     m_debug1Button = tgui::Button::create("DEBUG SPEED");
     m_debug1Button->setSize("28%", "25%");
     m_debug1Button->setPosition("5%", "50%");
@@ -30,7 +30,7 @@ void TestingPanel::initialize(tgui::Gui &gui)
     m_debug3Button->setSize("28%", "25%");
     m_debug3Button->setPosition("67%", "50%");
 
-    // Setup styling and add to panel
+    // Set up styling
     setupStyling();
     connectEvents();
 
@@ -118,10 +118,4 @@ void TestingPanel::setDebug2Callback(std::function<void()> callback)
 void TestingPanel::setDebug3Callback(std::function<void()> callback)
 {
     m_debug3ButtonCallback = callback;
-}
-
-void TestingPanel::updateResponsiveSize(const sf::Vector2u &windowSize)
-{
-    // Panel is already using percentage-based sizing, so it will auto-resize
-    // Any additional responsive updates can go here if needed
 }

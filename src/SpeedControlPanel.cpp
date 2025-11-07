@@ -1,9 +1,74 @@
 #include "SpeedControlPanel.h"
 #include "ThemeManager.h"
 #include <iostream>
+#include <algorithm>
 
-SpeedControlPanel::SpeedControlPanel() = default;
+SpeedControlPanel::SpeedControlPanel()
+    : m_ioContext(std::make_unique<asio::io_context>())
+{
+}
+
 SpeedControlPanel::~SpeedControlPanel() = default;
+
+bool SpeedControlPanel::initializeSerial(const std::string &portName, unsigned int baudRate)
+{
+    try
+    {
+        // Configure serial connection
+        m_arduinoConnection = std::make_unique<asio::serial_port>(*m_ioContext, portName);
+
+        m_arduinoConnection->set_option(asio::serial_port_base::baud_rate(baudRate));
+        m_arduinoConnection->set_option(asio::serial_port_base::character_size(8));
+        m_arduinoConnection->set_option(asio::serial_port_base::parity(asio::serial_port_base::parity::none));
+        m_arduinoConnection->set_option(asio::serial_port_base::stop_bits(asio::serial_port_base::stop_bits::one));
+        m_arduinoConnection->set_option(asio::serial_port_base::flow_control(asio::serial_port_base::flow_control::none));
+
+        // Check if connection is available
+        if (m_arduinoConnection->is_open())
+        {
+            std::cout << "Serial connection established on " << portName << " at " << baudRate << " baud" << std::endl;
+            return true;
+        }
+        else
+        {
+            std::cerr << "Failed to open serial port " << portName << std::endl;
+            return false;
+        }
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Serial connection error: " << e.what() << std::endl;
+        m_arduinoConnection.reset();
+        return false;
+    }
+}
+
+void SpeedControlPanel::sendCommand(const std::string &command)
+{
+    if (m_arduinoConnection && m_arduinoConnection->is_open())
+    {
+        try
+        {
+            // Send command
+            std::string commandWithNewline = command + "\n";
+            asio::write(*m_arduinoConnection, asio::buffer(commandWithNewline));
+            std::cout << "Sent to Arduino: " << command << std::endl;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Error sending command: " << e.what() << std::endl;
+        }
+    }
+    else
+    {
+        std::cerr << "Serial connection not available. Command not sent: " << command << std::endl;
+    }
+}
+
+bool SpeedControlPanel::isSerialConnected() const
+{
+    return m_arduinoConnection && m_arduinoConnection->is_open();
+}
 
 void SpeedControlPanel::initialize(tgui::Gui &gui)
 {
@@ -122,6 +187,25 @@ void SpeedControlPanel::connectEvents()
     m_startButton->onPress([this]()
                            {
         readSpeedCommands();
+        
+        // Check if we have valid commands to send
+        if (!m_motorCommands.empty()) {
+            
+            // Send start command followed by the motor commands
+            sendCommand("START_TREADMILL");
+            
+            // Send each motor command
+            for (size_t i = 0; i < m_motorCommands.size(); ++i) {
+                const auto& cmd = m_motorCommands[i];
+                std::string motorCommand = "L:" + std::to_string(cmd.leftSpeed) + 
+                                         " R:" + std::to_string(cmd.rightSpeed) + 
+                                         " T:" + std::to_string(cmd.time);
+                sendCommand(motorCommand);
+            }
+        } else {
+            std::cerr << "No valid motor commands to send!" << std::endl;
+        }
+        
         if (m_startCallback) {
             std::string speed = m_speedInput->getText().toStdString();
             m_startCallback(speed);
@@ -129,6 +213,9 @@ void SpeedControlPanel::connectEvents()
 
     m_stopButton->onPress([this]()
                           {
+        // Send stop command to Arduino
+        sendCommand("STOP_TREADMILL");
+        
         if (m_stopCallback) {
             m_stopCallback();
         } });
@@ -142,11 +229,11 @@ void SpeedControlPanel::connectEvents()
 
     m_downloadSpeedButton->onPress([this]()
                                    {
+        openSaveFileDialog();
         if (m_downloadSpeedButtonCallback) {
             m_downloadSpeedButtonCallback();
         } });
 
-    // File dialog events are now handled in openFileDialog() method
 }
 
 void SpeedControlPanel::setStartCallback(std::function<void(const std::string &)> callback)
@@ -176,7 +263,6 @@ void SpeedControlPanel::setUploadFileCallback(std::function<void(const std::stri
 
 void SpeedControlPanel::openFileDialog()
 {
-    // Remove the old file dialog if it exists
     if (m_fileDialog && m_fileDialog->getParent())
     {
         m_fileDialog->getParent()->remove(m_fileDialog);
@@ -190,7 +276,7 @@ void SpeedControlPanel::openFileDialog()
     m_fileDialog->setSelectingDirectory(false);
     m_fileDialog->setMultiSelect(false);
 
-    // Set up the file select callback
+    // File select callback
     m_fileDialog->onFileSelect([this](const std::vector<tgui::Filesystem::Path> &files)
                                {
         if (!files.empty() && m_uploadFileCallback) {
@@ -203,12 +289,12 @@ void SpeedControlPanel::openFileDialog()
                 std::cerr << "Error reading file: " << e.what() << std::endl;
             }
         }
-        // Remove the dialog after use
+        // Remove window after use
         if (m_fileDialog && m_fileDialog->getParent()) {
             m_fileDialog->getParent()->remove(m_fileDialog);
         } });
 
-    // Set up the close callback
+    // Close callback
     m_fileDialog->onClose([this]()
                           {
         if (m_fileDialog && m_fileDialog->getParent()) {
@@ -237,12 +323,192 @@ std::string SpeedControlPanel::readFileContent(const std::string &filepath)
 
 void SpeedControlPanel::readSpeedCommands()
 {
-    // // Get text from text area
-    // std::string commands = m_speedInput->getText().toStdString();
-    // std::istringstream stream(commands);
-    // std::string line;
-    // while (std::getline(stream, line)) {
-    //     std::cout << "Running: " << line << std::endl;
-    // }
+    // Parse the commands when this method is called
+    parseSpeedCommands();
+}
 
+bool SpeedControlPanel::parseSpeedCommands()
+{
+    m_motorCommands.clear();
+
+    // Get text from text area
+    std::string commands = m_speedInput->getText().toStdString();
+    std::istringstream stream(commands);
+    std::string line;
+
+    // Regex to parse the speed commands
+    std::regex commandRegex(R"(L:\s*(-?\d+(?:\.\d+)?)\s+R:\s*(-?\d+(?:\.\d+)?)\s+T:\s*(-?\d+(?:\.\d+)?))");
+    std::smatch matches;
+
+    int lineNumber = 0;
+    bool hasValidCommands = false;
+
+    while (std::getline(stream, line))
+    {
+        lineNumber++;
+
+        // Skip empty lines and lines with only whitespace
+        if (line.empty() || std::all_of(line.begin(), line.end(), ::isspace))
+        {
+            continue;
+        }
+
+        if (std::regex_search(line, matches, commandRegex))
+        {
+            try
+            {
+                double leftSpeed = std::stod(matches[1].str());
+                double rightSpeed = std::stod(matches[2].str());
+                double time = std::stod(matches[3].str());
+
+                // Check for formatting errors
+                if (time <= 0)
+                {
+                    std::cerr << "Warning: Line " << lineNumber << " has invalid time value (must be > 0): " << time << std::endl;
+                    continue;
+                }
+
+                m_motorCommands.emplace_back(leftSpeed, rightSpeed, time);
+                hasValidCommands = true;
+
+                std::cout << "Parsed command " << m_motorCommands.size() << ": L:" << leftSpeed
+                          << " R:" << rightSpeed << " T:" << time << std::endl;
+            }
+            catch (const std::exception &e)
+            {
+                std::cerr << "Error parsing line " << lineNumber << ": " << e.what() << std::endl;
+            }
+        }
+        else
+        {
+            std::cerr << "Warning: Line " << lineNumber << " doesn't match expected format: " << line << std::endl;
+        }
+    }
+
+    std::cout << "Successfully parsed " << m_motorCommands.size() << " motor commands." << std::endl;
+    return hasValidCommands;
+}
+
+const std::vector<MotorCommand> &SpeedControlPanel::getMotorCommands() const
+{
+    return m_motorCommands;
+}
+
+void SpeedControlPanel::clearMotorCommands()
+{
+    m_motorCommands.clear();
+}
+
+size_t SpeedControlPanel::getCommandCount() const
+{
+    return m_motorCommands.size();
+}
+
+void SpeedControlPanel::openSaveFileDialog()
+{
+    if (m_fileDialog && m_fileDialog->getParent())
+    {
+        m_fileDialog->getParent()->remove(m_fileDialog);
+    }
+
+    // Create a new file dialog each time to avoid state issues
+    m_fileDialog = tgui::FileDialog::create();
+    m_fileDialog->setFileTypeFilters({{"Text files", {"*.txt"}},
+                                      {"Config files", {"*.cfg", "*.conf"}},
+                                      {"All files", {"*.*"}}});
+    m_fileDialog->setSelectingDirectory(false);
+    m_fileDialog->setMultiSelect(false);
+
+    m_fileDialog->setFilename("speed_config.txt");
+    m_fileDialog->setFilenameLabelText("Save as:");
+
+    // File select callback for saving
+    m_fileDialog->onFileSelect([this](const std::vector<tgui::Filesystem::Path> &files)
+                               {
+        if (!files.empty()) {
+            std::string filepath = files[0].asString().toStdString();
+            
+            // Ensure the file has an extension
+            if (filepath.find_last_of('.') == std::string::npos) {
+                filepath += ".txt"; 
+            }
+            
+            try {
+                std::string content = generateConfigContent();
+                writeFileContent(filepath, content);
+                
+                std::cout << "Successfully saved speed config to: " << filepath << std::endl;
+            } catch (const std::exception& e) {
+                std::cerr << "Error saving file: " << e.what() << std::endl;
+            }
+        }
+        // Remove window after use
+        if (m_fileDialog && m_fileDialog->getParent()) {
+            m_fileDialog->getParent()->remove(m_fileDialog);
+        } });
+
+    // Close callback
+    m_fileDialog->onClose([this]()
+                          {
+        if (m_fileDialog && m_fileDialog->getParent()) {
+            m_fileDialog->getParent()->remove(m_fileDialog);
+        } });
+
+    // Add to GUI and show
+    if (m_panel && m_panel->getParent())
+    {
+        m_panel->getParent()->add(m_fileDialog);
+    }
+}
+
+std::string SpeedControlPanel::generateConfigContent() const
+{
+    std::stringstream content;
+
+    // If we have parsed motor commands, use those
+    if (!m_motorCommands.empty())
+    {
+        content << "# Generated Speed Configuration\n";
+        content << "# Format: L:{left_speed} R:{right_speed} T:{time}\n\n";
+
+        for (const auto &cmd : m_motorCommands)
+        {
+            content << "L:" << cmd.leftSpeed << " R:" << cmd.rightSpeed << " T:" << cmd.time << "\n";
+        }
+    }
+    // Otherwise, use the raw text from the input area
+    else
+    {
+        std::string inputText = m_speedInput->getText().toStdString();
+        if (inputText.empty() || inputText == "Enter speed")
+        {
+            content << "# Empty Speed Configuration\n";
+            content << "# Add commands in format: L:{left_speed} R:{right_speed} T:{time}\n";
+            content << "# Example:\n";
+            content << "# L:1.5 R:2.0 T:3.0\n";
+        }
+        else
+        {
+            content << inputText;
+        }
+    }
+
+    return content.str();
+}
+
+void SpeedControlPanel::writeFileContent(const std::string &filepath, const std::string &content)
+{
+    std::ofstream file(filepath);
+    if (!file.is_open())
+    {
+        throw std::runtime_error("Could not create file: " + filepath);
+    }
+
+    file << content;
+    file.close();
+
+    if (file.fail())
+    {
+        throw std::runtime_error("Error writing to file: " + filepath);
+    }
 }

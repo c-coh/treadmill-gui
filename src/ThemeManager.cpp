@@ -49,14 +49,12 @@ void ThemeManager::setupFont(tgui::Label::Ptr label)
 {
     try
     {
-        // From build/bin/Debug/ we need to go up 3 levels to project root, then into src/
         label->getRenderer()->setFont("../../../src/arial.ttf");
         std::cout << "Arial font loaded successfully!" << std::endl;
         m_fontLoaded = true;
     }
     catch (const std::exception &e)
     {
-        // Try alternative path
         try
         {
             label->getRenderer()->setFont("arial.ttf");
@@ -76,17 +74,16 @@ void ThemeManager::updateResponsiveTextSizes(const sf::Vector2u &windowSize,
                                              tgui::Label::Ptr speedLabel,
                                              tgui::Label::Ptr statusTitle)
 {
-    // Calculate responsive text sizes based on window dimensions
-    unsigned int titleSize = static_cast<unsigned int>(windowSize.y * 0.045f); // 4.5% of window height
-    unsigned int labelSize = static_cast<unsigned int>(windowSize.y * 0.025f); // 2.5% of window height
-    unsigned int statusSize = static_cast<unsigned int>(windowSize.y * 0.03f); // 3% of window height
+    // Dynamically calculate text sizes based on window dimensions
+    unsigned int titleSize = static_cast<unsigned int>(windowSize.y * 0.045f);
+    unsigned int labelSize = static_cast<unsigned int>(windowSize.y * 0.025f);
+    unsigned int statusSize = static_cast<unsigned int>(windowSize.y * 0.03f);
 
-    // Ensure minimum sizes
+    // Set min text sizes
     titleSize = std::max(titleSize, 20u);
     labelSize = std::max(labelSize, 14u);
     statusSize = std::max(statusSize, 16u);
 
-    // Apply the sizes
     if (title)
         title->setTextSize(titleSize);
     if (speedLabel)

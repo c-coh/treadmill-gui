@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 project(treadmill-gui LANGUAGES CXX)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(TGUI_BACKEND SFML_GRAPHICS CACHE STRING "TGUI backend to use")
 
 include(FetchContent)
 FetchContent_Declare(
@@ -22,10 +23,11 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(TGUI)
 
 FetchContent_Declare(
-  TGUI
-  GIT_REPOSITORY https://github.com/texus/TGUI.git
-  GIT_TAG v1.11.0
+  asio
+  GIT_REPOSITORY https://github.com/chriskohlhoff/asio.git
+  GIT_TAG asio-1-30-2
 )
+FetchContent_MakeAvailable(asio)
 
 add_executable(main
   src/main.cpp
@@ -46,4 +48,13 @@ target_link_libraries(main PRIVATE
   SFML::Window
   SFML::System
   TGUI::TGUI
+)
+
+# Add asio include directory
+target_include_directories(main PRIVATE ${asio_SOURCE_DIR}/asio/include)
+
+# Define ASIO_STANDALONE to use asio without Boost
+target_compile_definitions(main PRIVATE
+  ASIO_STANDALONE
+  _WIN32_WINNT=0x0A00 # Windows 10
 )
