@@ -1,5 +1,5 @@
 #include "DataPanel.h"
-#include "ThemeManager.h"
+#include "ui/ThemeManager.h"
 
 DataPanel::DataPanel() = default;
 DataPanel::~DataPanel() = default;
@@ -13,19 +13,19 @@ void DataPanel::initialize(tgui::Gui &gui)
 
     // Status title
     m_statusTitle = tgui::Label::create("OUTPUT CONSOLE");
-    m_statusTitle->setTextSize(ThemeManager::TextSizes::TITLE_MEDIUM);
-    m_statusTitle->setPosition(ThemeManager::Layout::MARGIN_MEDIUM, "4%");
+    m_statusTitle->setTextSize(ThemeManager::TextSizes::LABEL_STANDARD);
+    m_statusTitle->setPosition("7%", "4%");
 
     // Status text area
     m_statusText = tgui::TextArea::create();
     m_statusText->setSize("90%", "80%");
-    m_statusText->setPosition(ThemeManager::Layout::MARGIN_SMALL, ThemeManager::Layout::MARGIN_LARGE);
+    m_statusText->setPosition(ThemeManager::Layout::MARGIN, "15%");
     m_statusText->setText("System initialized\n");
     m_statusText->setReadOnly(true);
 
     // Download Data button
     m_downloadDataButton = tgui::Button::create("DOWNLOAD DATA");
-    m_downloadDataButton->setSize("30%", "8%");
+    m_downloadDataButton->setSize("30%", ThemeManager::Layout::BUTTON_HEIGHT);
     m_downloadDataButton->setPosition("65%", "4%");
 
     setupStyling();
@@ -52,15 +52,15 @@ void DataPanel::setupStyling()
 
     // Text area styling
     m_statusText->getRenderer()->setBackgroundColor(ThemeManager::Colors::TextAreaBackground);
-    m_statusText->getRenderer()->setTextColor(ThemeManager::Colors::TextSecondary);
+    m_statusText->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
     m_statusText->getRenderer()->setBorderColor(ThemeManager::Colors::TextAreaBorder);
     m_statusText->getRenderer()->setBorders({ThemeManager::Borders::ELEMENT_WIDTH});
     m_statusText->getRenderer()->setRoundedBorderRadius(ThemeManager::Borders::INPUT_RADIUS);
     m_statusText->getRenderer()->setScrollbarWidth(ThemeManager::Borders::SCROLLBAR_WIDTH);
 
-    ThemeManager::styleButton(m_downloadDataButton, ThemeManager::Colors::ButtonDownload,
-                              ThemeManager::Colors::DownloadButtonHover, ThemeManager::Colors::DownloadButtonDown,
-                              ThemeManager::Colors::DownloadButtonBorder);
+    ThemeManager::styleButton(m_downloadDataButton, ThemeManager::Colors::ButtonDefault,
+                              ThemeManager::Colors::DefaultButtonHover, ThemeManager::Colors::DefaultButtonDown,
+                              ThemeManager::Colors::DefaultButtonBorder);
 }
 
 void DataPanel::setDownloadDataButtonCallback(std::function<void()> callback)

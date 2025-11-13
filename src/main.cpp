@@ -1,4 +1,4 @@
-#include "TreadmillApp.h"
+#include "core/TreadmillApp.h"
 #include <iostream>
 
 int main()

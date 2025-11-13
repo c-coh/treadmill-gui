@@ -31,17 +31,25 @@ FetchContent_MakeAvailable(asio)
 
 add_executable(main
   src/main.cpp
-  src/TreadmillApp.cpp
-  src/SpeedControlPanel.cpp
-  src/TestingPanel.cpp
-  src/DataPanel.cpp
-  src/ThemeManager.cpp
+  src/core/TreadmillApp.cpp
+  src/ui/panels/SpeedControlPanel.cpp
+  src/ui/panels/TestingPanel.cpp
+  src/ui/panels/DataPanel.cpp
+  src/ui/ThemeManager.cpp
+  src/utils/FileManager.cpp
+  src/utils/SerialManager.cpp
 )
 
 target_compile_features(main PRIVATE cxx_std_17)
 
-# Add the src directory to the include path so header files can be found
-target_include_directories(main PRIVATE src)
+# Add the src directory and subdirectories to the include path so header files can be found
+target_include_directories(main PRIVATE
+  src
+  src/core
+  src/ui
+  src/ui/panels
+  src/utils
+)
 
 target_link_libraries(main PRIVATE
   SFML::Graphics

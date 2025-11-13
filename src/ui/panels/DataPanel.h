@@ -15,8 +15,7 @@ public:
     void clearData();
     void setDownloadDataButtonCallback(std::function<void()> callback);
 
-    // Getters for responsive text sizing
-    tgui::Label::Ptr getStatusTitle() const { return m_statusTitle; }
+    // Getters for data operations
     tgui::TextArea::Ptr getStatusText() const { return m_statusText; }
 
 private:

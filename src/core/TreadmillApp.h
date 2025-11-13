@@ -22,7 +22,6 @@ public:
 private:
     void handleEvents();
     void handleWindowResize(const sf::Event::Resized &resizeEvent);
-    void updateResponsiveSizes();
     void render();
 
     sf::RenderWindow m_window;

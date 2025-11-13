@@ -1,8 +1,8 @@
 #include "TreadmillApp.h"
-#include "SpeedControlPanel.h"
-#include "TestingPanel.h"
-#include "DataPanel.h"
-#include "ThemeManager.h"
+#include "ui/panels/SpeedControlPanel.h"
+#include "ui/panels/TestingPanel.h"
+#include "ui/panels/DataPanel.h"
+#include "ui/ThemeManager.h"
 #include <iostream>
 
 TreadmillApp::TreadmillApp()
@@ -12,7 +12,6 @@ TreadmillApp::TreadmillApp()
 }
 
 TreadmillApp::~TreadmillApp() = default;
-
 
 // -------- INITIALIZATIONS ---------
 bool TreadmillApp::initialize()
@@ -31,7 +30,7 @@ bool TreadmillApp::initialize()
 
         // Create title label
         m_titleLabel = tgui::Label::create("TREADMILL CONTROLLER");
-        m_titleLabel->setTextSize(36);
+        m_titleLabel->setTextSize(ThemeManager::TextSizes::TITLE_LARGE);
         m_titleLabel->setPosition("4%", "4%");
         m_titleLabel->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
         m_themeManager->setupFont(m_titleLabel);
@@ -48,7 +47,7 @@ bool TreadmillApp::initialize()
         m_testingPanel->initialize(m_gui);
 
         // Attempt to initialize the serial connection
-        if (!m_speedPanel->initializeSerial("COM3", 9600))
+        if (!m_speedPanel->getSerialManager()->initialize("COM3", 9600))
         {
             std::cout << "Warning: Could not connect to Arduino on COM3. USB commands will not be sent." << std::endl;
         }
@@ -64,11 +63,6 @@ bool TreadmillApp::initialize()
             std::cout << "Stop" << std::endl;
             m_dataPanel->addStatusMessage("Treadmill stopped"); });
 
-        m_speedPanel->setDownloadSpeedButtonCallback([this]()
-                                                     {
-            std::cout << "Saving speed config..." << std::endl;
-            m_dataPanel->addStatusMessage("Opening save dialog for speed config..."); });
-
         m_speedPanel->setUploadFileCallback([this](const std::string &filename, const std::string &content)
                                             {
                                                 std::cout << "Uploaded file: " << filename << " (" << content.length() << " characters)" << std::endl;
@@ -77,8 +71,6 @@ bool TreadmillApp::initialize()
                                                 
                                                 m_speedPanel->getSpeedInput()->setText(content);
                                                 m_dataPanel->addStatusMessage("File content loaded into speed input"); });
-
-        updateResponsiveSizes();
 
         std::cout << "All components initialized." << std::endl;
         m_running = true;
@@ -90,7 +82,6 @@ bool TreadmillApp::initialize()
         return false;
     }
 }
-
 
 // -------- MAIN LOOP ---------
 void TreadmillApp::run()
@@ -130,27 +121,14 @@ void TreadmillApp::handleWindowResize(const sf::Event::Resized &resizeEvent)
     m_gui.setAbsoluteView(tgui::FloatRect{0.f, 0.f,
                                           static_cast<float>(resizeEvent.size.x),
                                           static_cast<float>(resizeEvent.size.y)});
-    updateResponsiveSizes();
 
     std::cout << "Window resized to: " << resizeEvent.size.x
               << "x" << resizeEvent.size.y << std::endl;
 }
 
-void TreadmillApp::updateResponsiveSizes()
-{
-    if (m_themeManager && m_titleLabel && m_speedPanel && m_dataPanel)
-    {
-        m_themeManager->updateResponsiveTextSizes(
-            m_window.getSize(),
-            m_titleLabel,
-            m_speedPanel->getSpeedLabel(),
-            m_dataPanel->getStatusTitle());
-    }
-}
-
 void TreadmillApp::render()
 {
-    m_window.clear(sf::Color{20, 20, 25});
+    m_window.clear(ThemeManager::Colors::WindowBackground);
     m_gui.draw();
     m_window.display();
 }
