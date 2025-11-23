@@ -3,6 +3,8 @@
 #include <TGUI/TGUI.hpp>
 #include <TGUI/Backend/SFML-Graphics.hpp>
 #include <functional>
+#include <memory>
+#include "utils/SerialManager.h"
 
 class TestingPanel
 {
@@ -10,7 +12,7 @@ public:
     TestingPanel();
     ~TestingPanel();
 
-    void initialize(tgui::Gui &gui);
+    void initialize(tgui::Gui &gui, std::shared_ptr<SerialManager> serialManager);
 
     void setDebug1Callback(std::function<void()> callback);
     void setDebug2Callback(std::function<void()> callback);
@@ -27,6 +29,8 @@ private:
     tgui::Button::Ptr m_debug1Button;
     tgui::Button::Ptr m_debug2Button;
     tgui::Button::Ptr m_debug3Button;
+
+    std::shared_ptr<SerialManager> m_serialManager;
 
     // Callbacks
     std::function<void()> m_debug1ButtonCallback;

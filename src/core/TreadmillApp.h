@@ -4,6 +4,7 @@
 #include <TGUI/Backend/SFML-Graphics.hpp>
 #include <TGUI/TGUI.hpp>
 #include <memory>
+#include "utils/SerialManager.h"
 
 class SpeedControlPanel;
 class DataPanel;
@@ -32,6 +33,9 @@ private:
     std::unique_ptr<TestingPanel> m_testingPanel;
     std::unique_ptr<DataPanel> m_dataPanel;
     std::unique_ptr<ThemeManager> m_themeManager;
+
+    // Core Systems
+    std::shared_ptr<SerialManager> m_serialManager;
 
     // Main UI elements
     tgui::Panel::Ptr m_backgroundPanel;

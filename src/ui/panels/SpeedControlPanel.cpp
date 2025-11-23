@@ -5,49 +5,71 @@
 #include <algorithm>
 #include <sstream>
 
+// Shorter aliases for ThemeManager members
+using Layout = ThemeManager::Layout;
+using Colors = ThemeManager::Colors;
+using TextSizes = ThemeManager::TextSizes;
+using Borders = ThemeManager::Borders;
+
 SpeedControlPanel::SpeedControlPanel()
-    : m_serialManager(std::make_unique<SerialManager>())
 {
 }
 
 SpeedControlPanel::~SpeedControlPanel() = default;
 
-void SpeedControlPanel::initialize(tgui::Gui &gui)
+void SpeedControlPanel::initialize(tgui::Gui &gui, std::shared_ptr<SerialManager> serialManager)
 {
+    m_serialManager = serialManager;
+
     // Create main panel
     m_panel = tgui::Panel::create();
-    m_panel->setSize(ThemeManager::Layout::HALF_PANEL_WIDTH, "60%");
-    m_panel->setPosition(ThemeManager::Layout::MARGIN, "10%");
+    m_panel->setSize(Layout::HALF_PANEL_WIDTH, "60%");
+    m_panel->setPosition(Layout::MARGIN_SMALL, "10%");
 
     // Speed label
     m_speedLabel = tgui::Label::create("SPEED CONTROL");
-    m_speedLabel->setTextSize(ThemeManager::TextSizes::LABEL_STANDARD);
-    m_speedLabel->setPosition(ThemeManager::Layout::MARGIN, "8%");
+    m_speedLabel->setTextSize(TextSizes::LABEL_STANDARD);
+    m_speedLabel->setPosition(Layout::MARGIN_SMALL, "8%");
 
     // Speed input
     m_speedInput = tgui::TextArea::create();
-    m_speedInput->setSize(ThemeManager::Layout::INPUT_WIDTH, ThemeManager::Layout::INPUT_HEIGHT);
-    m_speedInput->setPosition(ThemeManager::Layout::MARGIN, "20%");
+    m_speedInput->setSize(Layout::INPUT_WIDTH, "35%");
+    m_speedInput->setPosition(Layout::MARGIN_SMALL, "20%");
     m_speedInput->setDefaultText("Enter speed");
 
+    // Port selection
+    m_portLabel = tgui::Label::create("PORT:");
+    m_portLabel->setTextSize(TextSizes::BUTTON_TEXT);
+    m_portLabel->setPosition(Layout::MARGIN_SMALL, "60%");
+    m_portLabel->setVerticalAlignment(tgui::VerticalAlignment::Center);
+
+    m_portInput = tgui::EditBox::create();
+    m_portInput->setSize("20%", Layout::SPEED_BUTTON_HEIGHT);
+    m_portInput->setPosition("15%", "60%");
+    m_portInput->setDefaultText("COM3");
+
+    m_connectButton = tgui::Button::create("CONNECT");
+    m_connectButton->setSize("25%", Layout::SPEED_BUTTON_HEIGHT);
+    m_connectButton->setPosition("40%", "60%");
+    
     // Start button
     m_startButton = tgui::Button::create("START");
-    m_startButton->setSize("20%", ThemeManager::Layout::BUTTON_HEIGHT);
-    m_startButton->setPosition(ThemeManager::Layout::MARGIN, "70%");
+    m_startButton->setSize("20%", Layout::SPEED_BUTTON_HEIGHT);
+    m_startButton->setPosition(Layout::MARGIN_SMALL, "72%");
 
     // Stop button
     m_stopButton = tgui::Button::create("STOP");
-    m_stopButton->setSize("20%", ThemeManager::Layout::BUTTON_HEIGHT);
-    m_stopButton->setPosition("30%", "70%");
+    m_stopButton->setSize("20%", Layout::SPEED_BUTTON_HEIGHT);
+    m_stopButton->setPosition("30%", "72%");
 
     // Upload Speed button
     m_uploadSpeedButton = tgui::Button::create("UPLOAD SPEED CONFIG");
-    m_uploadSpeedButton->setSize("35%", ThemeManager::Layout::BUTTON_HEIGHT);
-    m_uploadSpeedButton->setPosition(ThemeManager::Layout::MARGIN, "85%");
+    m_uploadSpeedButton->setSize("35%", Layout::SPEED_BUTTON_HEIGHT);
+    m_uploadSpeedButton->setPosition(Layout::MARGIN_SMALL, "85%");
 
     // Download Speed button
     m_downloadSpeedButton = tgui::Button::create("DOWNLOAD SPEED CONFIG");
-    m_downloadSpeedButton->setSize("35%", ThemeManager::Layout::BUTTON_HEIGHT);
+    m_downloadSpeedButton->setSize("35%", Layout::SPEED_BUTTON_HEIGHT);
     m_downloadSpeedButton->setPosition("45%", "85%");
 
     // File dialog will be created fresh each time it's needed
@@ -59,6 +81,9 @@ void SpeedControlPanel::initialize(tgui::Gui &gui)
     // Add widgets to panel
     m_panel->add(m_speedLabel);
     m_panel->add(m_speedInput);
+    m_panel->add(m_portLabel);
+    m_panel->add(m_portInput);
+    m_panel->add(m_connectButton);
     m_panel->add(m_startButton);
     m_panel->add(m_stopButton);
     m_panel->add(m_uploadSpeedButton);
@@ -70,84 +95,98 @@ void SpeedControlPanel::initialize(tgui::Gui &gui)
     // File dialog will be created and added when needed
 }
 
-std::string SpeedControlPanel::formatMotorCommand(const MotorCommand &cmd) const
-{
-    std::ostringstream oss;
-    oss << "L:" << cmd.leftSpeed << " R:" << cmd.rightSpeed << " T:" << cmd.time;
-    return oss.str();
-}
-
 void SpeedControlPanel::setupStyling()
 {
     // Panel styling
-    m_panel->getRenderer()->setBackgroundColor(ThemeManager::Colors::PanelBackground);
-    m_panel->getRenderer()->setBorderColor(ThemeManager::Colors::BorderPrimary);
-    m_panel->getRenderer()->setBorders({ThemeManager::Borders::PANEL_WIDTH});
-    m_panel->getRenderer()->setRoundedBorderRadius(ThemeManager::Borders::PANEL_RADIUS);
+    m_panel->getRenderer()->setBackgroundColor(Colors::PanelBackground);
+    m_panel->getRenderer()->setBorderColor(Colors::BorderPrimary);
+    m_panel->getRenderer()->setBorders({Borders::PANEL_WIDTH});
+    m_panel->getRenderer()->setRoundedBorderRadius(Borders::PANEL_RADIUS);
 
     // Label styling
-    m_speedLabel->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
+    m_speedLabel->getRenderer()->setTextColor(Colors::TextPrimary);
 
     // Input styling
-    m_speedInput->getRenderer()->setBackgroundColor(ThemeManager::Colors::TextAreaBackground);
-    m_speedInput->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
-    m_speedInput->getRenderer()->setBorderColor(ThemeManager::Colors::TextAreaBorder);
-    m_speedInput->getRenderer()->setBorders({ThemeManager::Borders::ELEMENT_WIDTH});
-    m_speedInput->getRenderer()->setRoundedBorderRadius(ThemeManager::Borders::INPUT_RADIUS);
+    m_speedInput->getRenderer()->setBackgroundColor(Colors::TextAreaBackground);
+    m_speedInput->getRenderer()->setTextColor(Colors::TextPrimary);
+    m_speedInput->getRenderer()->setBorderColor(Colors::TextAreaBorder);
+    m_speedInput->getRenderer()->setBorders({Borders::ELEMENT_WIDTH});
+    m_speedInput->getRenderer()->setRoundedBorderRadius(Borders::INPUT_RADIUS);
+
+    // Port styling
+    m_portLabel->getRenderer()->setTextColor(Colors::TextPrimary);
+
+    m_portInput->getRenderer()->setBackgroundColor(Colors::TextAreaBackground);
+    m_portInput->getRenderer()->setTextColor(Colors::TextPrimary);
+    m_portInput->getRenderer()->setBorderColor(Colors::TextAreaBorder);
+    m_portInput->getRenderer()->setBorders({Borders::ELEMENT_WIDTH});
+    m_portInput->getRenderer()->setRoundedBorderRadius(Borders::INPUT_RADIUS);
+
+    ThemeManager::styleButton(m_connectButton, Colors::ButtonDefault,
+                              Colors::DefaultButtonHover, Colors::DefaultButtonDown,
+                              Colors::DefaultButtonBorder, Borders::BUTTON_RADIUS);
+    m_connectButton->getRenderer()->setTextSize(TextSizes::BUTTON_TEXT);
 
     // Button styling using helper method
-    ThemeManager::styleButton(m_startButton, ThemeManager::Colors::ButtonStart,
-                              ThemeManager::Colors::StartButtonHover, ThemeManager::Colors::StartButtonDown,
-                              ThemeManager::Colors::StartButtonBorder, ThemeManager::Borders::BUTTON_RADIUS);
-    m_startButton->getRenderer()->setTextSize(ThemeManager::TextSizes::BUTTON_TEXT);
+    ThemeManager::styleButton(m_startButton, Colors::ButtonStart,
+                              Colors::StartButtonHover, Colors::StartButtonDown,
+                              Colors::StartButtonBorder, Borders::BUTTON_RADIUS);
+    m_startButton->getRenderer()->setTextSize(TextSizes::BUTTON_TEXT);
 
-    ThemeManager::styleButton(m_stopButton, ThemeManager::Colors::ButtonStop,
-                              ThemeManager::Colors::StopButtonHover, ThemeManager::Colors::StopButtonDown,
-                              ThemeManager::Colors::StopButtonBorder, ThemeManager::Borders::BUTTON_RADIUS);
+    ThemeManager::styleButton(m_stopButton, Colors::ButtonStop,
+                              Colors::StopButtonHover, Colors::StopButtonDown,
+                              Colors::StopButtonBorder, Borders::BUTTON_RADIUS);
 
-    ThemeManager::styleButton(m_uploadSpeedButton, ThemeManager::Colors::ButtonDefault,
-                              ThemeManager::Colors::DefaultButtonHover, ThemeManager::Colors::DefaultButtonDown,
-                              ThemeManager::Colors::DefaultButtonBorder, ThemeManager::Borders::BUTTON_RADIUS);
+    ThemeManager::styleButton(m_uploadSpeedButton, Colors::ButtonDefault,
+                              Colors::DefaultButtonHover, Colors::DefaultButtonDown,
+                              Colors::DefaultButtonBorder, Borders::BUTTON_RADIUS);
 
-    ThemeManager::styleButton(m_downloadSpeedButton, ThemeManager::Colors::ButtonDefault,
-                              ThemeManager::Colors::DefaultButtonHover, ThemeManager::Colors::DefaultButtonDown,
-                              ThemeManager::Colors::DefaultButtonBorder, ThemeManager::Borders::BUTTON_RADIUS);
+    ThemeManager::styleButton(m_downloadSpeedButton, Colors::ButtonDefault,
+                              Colors::DefaultButtonHover, Colors::DefaultButtonDown,
+                              Colors::DefaultButtonBorder, Borders::BUTTON_RADIUS);
 }
 
 void SpeedControlPanel::connectEvents()
 {
+    m_connectButton->onPress([this]()
+                             {
+        std::string port = m_portInput->getText().toStdString();
+        if (port.empty()) {
+            if (m_statusCallback) m_statusCallback("Error: Port name cannot be empty");
+            return;
+        }
+        
+        if (m_serialManager->initialize(port, 115200)) {
+            if (m_statusCallback) m_statusCallback("Successfully connected to " + port);
+            m_connectButton->setText("CONNECTED");
+            m_connectButton->getRenderer()->setBackgroundColor(Colors::ButtonDefault); // Keep green
+        } else {
+            if (m_statusCallback) m_statusCallback("Failed to connect to " + port);
+            m_connectButton->setText("RETRY");
+            m_connectButton->getRenderer()->setBackgroundColor(Colors::ButtonStop); // Red for error
+        } });
+
     m_startButton->onPress([this]()
                            {
         parseSpeedCommands();
         
         // Check if we have valid commands to send
         if (!m_motorCommands.empty()) {
-            
-            // Send start command followed by the motor commands
-            m_serialManager->sendCommand("START_TREADMILL");
-            
-            // Send each motor command
-            for (size_t i = 0; i < m_motorCommands.size(); ++i) {
-                const auto& cmd = m_motorCommands[i];
-                m_serialManager->sendCommand(formatMotorCommand(cmd));
-            }
+            // Send all commands at once using the serial protocol
+            // Status messages are now handled by SerialManager
+            m_serialManager->runTreadmill(m_motorCommands);
         } else {
             std::cerr << "No valid motor commands to send!" << std::endl;
-        }
-        
-        if (m_startCallback) {
-            std::string speed = m_speedInput->getText().toStdString();
-            m_startCallback(speed);
+            if (m_statusCallback) {
+                m_statusCallback("ERROR: No valid commands to send");
+            }
         } });
 
     m_stopButton->onPress([this]()
                           {
-        // Send stop command to Arduino
-        m_serialManager->sendCommand("STOP_TREADMILL");
-        
-        if (m_stopCallback) {
-            m_stopCallback();
-        } });
+        // Send stop command using serial protocol
+        // Status messages are now handled by SerialManager
+        m_serialManager->stopTreadmill(); });
 
     m_uploadSpeedButton->onPress([this]()
                                  { openFileDialog(true); });
@@ -156,14 +195,11 @@ void SpeedControlPanel::connectEvents()
                                    { openFileDialog(false); });
 }
 
-void SpeedControlPanel::setStartCallback(std::function<void(const std::string &)> callback)
+void SpeedControlPanel::setStatusCallback(std::function<void(const std::string &)> callback)
 {
-    m_startCallback = callback;
-}
-
-void SpeedControlPanel::setStopCallback(std::function<void()> callback)
-{
-    m_stopCallback = callback;
+    m_statusCallback = callback;
+    // Also forward the callback to SerialManager so it can send status updates
+    m_serialManager->setStatusCallback(callback);
 }
 
 void SpeedControlPanel::setUploadFileCallback(std::function<void(const std::string &, const std::string &)> callback)
@@ -254,7 +290,7 @@ bool SpeedControlPanel::parseSpeedCommands()
     std::istringstream stream(commands);
     std::string line;
 
-    // Regex to parse the speed commands
+    // Regex to validate the speed commands format
     std::regex commandRegex(R"(L:\s*(-?\d+(?:\.\d+)?)\s+R:\s*(-?\d+(?:\.\d+)?)\s+T:\s*(-?\d+(?:\.\d+)?))");
     std::smatch matches;
 
@@ -275,22 +311,18 @@ bool SpeedControlPanel::parseSpeedCommands()
         {
             try
             {
-                double leftSpeed = std::stod(matches[1].str());
-                double rightSpeed = std::stod(matches[2].str());
+                // Validate the time value
                 double time = std::stod(matches[3].str());
-
-                // Check for formatting errors
                 if (time <= 0)
                 {
                     std::cerr << "Warning: Line " << lineNumber << " has invalid time value (must be > 0): " << time << std::endl;
                     continue;
                 }
 
-                m_motorCommands.emplace_back(leftSpeed, rightSpeed, time);
+                m_motorCommands.push_back(line);
                 hasValidCommands = true;
 
-                std::cout << "Parsed command " << m_motorCommands.size() << ": L:" << leftSpeed
-                          << " R:" << rightSpeed << " T:" << time << std::endl;
+                std::cout << "Parsed command " << m_motorCommands.size() << ": " << line << std::endl;
             }
             catch (const std::exception &e)
             {
@@ -299,7 +331,7 @@ bool SpeedControlPanel::parseSpeedCommands()
         }
         else
         {
-            std::cerr << "Warning: Line " << lineNumber << " doesn't match expected format: " << line << std::endl;
+            std::cerr << "Warning: Line " << lineNumber << " doesn't match expected format, skipping: " << line << std::endl;
         }
     }
 
@@ -307,7 +339,7 @@ bool SpeedControlPanel::parseSpeedCommands()
     return hasValidCommands;
 }
 
-const std::vector<MotorCommand> &SpeedControlPanel::getMotorCommands() const
+const std::vector<std::string> &SpeedControlPanel::getMotorCommands() const
 {
     return m_motorCommands;
 }
@@ -324,7 +356,7 @@ std::string SpeedControlPanel::generateConfigContent() const
 
         for (const auto &cmd : m_motorCommands)
         {
-            content << formatMotorCommand(cmd) << "\n";
+            content << cmd << "\n";
         }
     }
     // Otherwise, use the raw text from the input area

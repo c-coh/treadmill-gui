@@ -2,32 +2,40 @@
 #include "ui/ThemeManager.h"
 #include <iostream>
 
+// Shorter aliases for ThemeManager members
+using Layout = ThemeManager::Layout;
+using Colors = ThemeManager::Colors;
+using TextSizes = ThemeManager::TextSizes;
+using Borders = ThemeManager::Borders;
+
 TestingPanel::TestingPanel() = default;
 TestingPanel::~TestingPanel() = default;
 
-void TestingPanel::initialize(tgui::Gui &gui)
+void TestingPanel::initialize(tgui::Gui &gui, std::shared_ptr<SerialManager> serialManager)
 {
+    m_serialManager = serialManager;
+
     // Main panel
     m_panel = tgui::Panel::create();
-    m_panel->setSize(ThemeManager::Layout::HALF_PANEL_WIDTH, ThemeManager::Layout::TESTING_PANEL_HEIGHT);
-    m_panel->setPosition(ThemeManager::Layout::TESTING_PANEL_X, ThemeManager::Layout::TESTING_PANEL_Y);
+    m_panel->setSize(Layout::HALF_PANEL_WIDTH, Layout::TESTING_PANEL_HEIGHT);
+    m_panel->setPosition(Layout::TESTING_PANEL_X, Layout::TESTING_PANEL_Y);
 
     // Debugging panel
     m_debugLabel = tgui::Label::create("TESTING PANEL");
-    m_debugLabel->setTextSize(ThemeManager::TextSizes::LABEL_STANDARD);
-    m_debugLabel->setPosition(ThemeManager::Layout::MARGIN, "8%");
+    m_debugLabel->setTextSize(TextSizes::LABEL_STANDARD);
+    m_debugLabel->setPosition(Layout::MARGIN_SMALL, "8%");
 
     // Debugging buttons
     m_debug1Button = tgui::Button::create("DEBUG SPEED");
-    m_debug1Button->setSize("28%", ThemeManager::Layout::BUTTON_HEIGHT);
-    m_debug1Button->setPosition(ThemeManager::Layout::MARGIN, "50%");
+    m_debug1Button->setSize("28%", Layout::TESTING_BUTTON_HEIGHT);
+    m_debug1Button->setPosition(Layout::MARGIN_SMALL, "50%");
 
     m_debug2Button = tgui::Button::create("DEBUG FORCE DATA");
-    m_debug2Button->setSize("28%", ThemeManager::Layout::BUTTON_HEIGHT);
+    m_debug2Button->setSize("28%", Layout::TESTING_BUTTON_HEIGHT);
     m_debug2Button->setPosition("36%", "50%");
 
     m_debug3Button = tgui::Button::create("DEBUG DATA");
-    m_debug3Button->setSize("28%", ThemeManager::Layout::BUTTON_HEIGHT);
+    m_debug3Button->setSize("28%", Layout::TESTING_BUTTON_HEIGHT);
     m_debug3Button->setPosition("67%", "50%");
 
     // Set up styling
@@ -47,26 +55,26 @@ void TestingPanel::initialize(tgui::Gui &gui)
 void TestingPanel::setupStyling()
 {
     // Panel styling
-    m_panel->getRenderer()->setBackgroundColor(ThemeManager::Colors::PanelBackground);
-    m_panel->getRenderer()->setBorderColor(ThemeManager::Colors::BorderTertiary);
-    m_panel->getRenderer()->setBorders({ThemeManager::Borders::PANEL_WIDTH});
-    m_panel->getRenderer()->setRoundedBorderRadius(ThemeManager::Borders::PANEL_RADIUS);
+    m_panel->getRenderer()->setBackgroundColor(Colors::PanelBackground);
+    m_panel->getRenderer()->setBorderColor(Colors::BorderTertiary);
+    m_panel->getRenderer()->setBorders({Borders::PANEL_WIDTH});
+    m_panel->getRenderer()->setRoundedBorderRadius(Borders::PANEL_RADIUS);
 
     // Label styling
-    m_debugLabel->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
+    m_debugLabel->getRenderer()->setTextColor(Colors::TextPrimary);
 
-    // Button styling using shared utility
-    ThemeManager::styleButton(m_debug1Button, ThemeManager::Colors::ButtonDefault,
-                              ThemeManager::Colors::DefaultButtonHover, ThemeManager::Colors::DefaultButtonDown,
-                              ThemeManager::Colors::DefaultButtonBorder);
-                              
-    ThemeManager::styleButton(m_debug2Button, ThemeManager::Colors::ButtonDefault,
-                              ThemeManager::Colors::DefaultButtonHover, ThemeManager::Colors::DefaultButtonDown,
-                              ThemeManager::Colors::DefaultButtonBorder);
+    // Button styling
+    ThemeManager::styleButton(m_debug1Button, Colors::ButtonDefault,
+                              Colors::DefaultButtonHover, Colors::DefaultButtonDown,
+                              Colors::DefaultButtonBorder);
 
-    ThemeManager::styleButton(m_debug3Button, ThemeManager::Colors::ButtonDefault,
-                              ThemeManager::Colors::DefaultButtonHover, ThemeManager::Colors::DefaultButtonDown,
-                              ThemeManager::Colors::DefaultButtonBorder);
+    ThemeManager::styleButton(m_debug2Button, Colors::ButtonDefault,
+                              Colors::DefaultButtonHover, Colors::DefaultButtonDown,
+                              Colors::DefaultButtonBorder);
+
+    ThemeManager::styleButton(m_debug3Button, Colors::ButtonDefault,
+                              Colors::DefaultButtonHover, Colors::DefaultButtonDown,
+                              Colors::DefaultButtonBorder);
 }
 
 void TestingPanel::connectEvents()

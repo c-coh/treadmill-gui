@@ -10,33 +10,21 @@
 #include <string>
 #include <regex>
 
-// Struct for motor commands
-struct MotorCommand
-{
-    double leftSpeed;
-    double rightSpeed;
-    double time;
-
-    MotorCommand(double left = 0.0, double right = 0.0, double duration = 0.0)
-        : leftSpeed(left), rightSpeed(right), time(duration) {}
-};
-
 class SpeedControlPanel
 {
 public:
     SpeedControlPanel();
     ~SpeedControlPanel();
 
-    void initialize(tgui::Gui &gui);
+    void initialize(tgui::Gui &gui, std::shared_ptr<SerialManager> serialManager);
 
     // Command parsing and management
     bool parseSpeedCommands();
-    const std::vector<MotorCommand> &getMotorCommands() const;
+    const std::vector<std::string> &getMotorCommands() const;
 
     // Event callbacks
-    void setStartCallback(std::function<void(const std::string &)> callback);
-    void setStopCallback(std::function<void()> callback);
-    void setUploadFileCallback(std::function<void(const std::string &, const std::string &)> callback); // filename, content
+    void setStatusCallback(std::function<void(const std::string &)> callback);
+    void setUploadFileCallback(std::function<void(const std::string &, const std::string &)> callback);
 
     // Getters for file operations
     tgui::TextArea::Ptr getSpeedInput() const { return m_speedInput; }
@@ -48,7 +36,6 @@ private:
     void openFileDialog(bool isLoadDialog = true);
     void setupFileDialog();
     void cleanupFileDialog();
-    std::string formatMotorCommand(const MotorCommand &cmd) const;
     std::string generateConfigContent() const;
 
     tgui::Panel::Ptr m_panel;
@@ -58,13 +45,18 @@ private:
     tgui::Button::Ptr m_stopButton;
     tgui::Button::Ptr m_uploadSpeedButton;
     tgui::Button::Ptr m_downloadSpeedButton;
+
+    // Port selection
+    tgui::Label::Ptr m_portLabel;
+    tgui::EditBox::Ptr m_portInput;
+    tgui::Button::Ptr m_connectButton;
+
     tgui::FileDialog::Ptr m_fileDialog;
 
-    std::unique_ptr<SerialManager> m_serialManager;
-    std::vector<MotorCommand> m_motorCommands;
+    std::shared_ptr<SerialManager> m_serialManager;
+    std::vector<std::string> m_motorCommands;
 
     // Callbacks
-    std::function<void(const std::string &)> m_startCallback;
-    std::function<void()> m_stopCallback;
+    std::function<void(const std::string &)> m_statusCallback;
     std::function<void(const std::string &, const std::string &)> m_uploadFileCallback;
 };

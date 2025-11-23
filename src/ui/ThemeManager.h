@@ -60,22 +60,27 @@ public:
         static constexpr const char *SPEED_PANEL_HEIGHT = "60%";
         static constexpr const char *SPEED_PANEL_X = "4%";
         static constexpr const char *SPEED_PANEL_Y = "10%";
+        static constexpr const char *SPEED_BUTTON_HEIGHT = "8.33%";
+
 
         static constexpr const char *DATA_PANEL_HEIGHT = "85%";
         static constexpr const char *DATA_PANEL_X = "52.5%";
         static constexpr const char *DATA_PANEL_Y = "10%";
+        static constexpr const char *DATA_BUTTON_HEIGHT = "5.88%";
+
 
         static constexpr const char *TESTING_PANEL_HEIGHT = "20%";
         static constexpr const char *TESTING_PANEL_X = "4%";
         static constexpr const char *TESTING_PANEL_Y = "75%";
+        static constexpr const char *TESTING_BUTTON_HEIGHT = "25%";
+
 
         // Common dimensions
-        static constexpr const char *BUTTON_HEIGHT = "10%";
         static constexpr const char *INPUT_WIDTH = "85%";
         static constexpr const char *INPUT_HEIGHT = "45%";
 
         // Common spacing values
-        static constexpr const char *MARGIN = "4%";
+        static constexpr const char *MARGIN_SMALL = "4%";
         static constexpr const char *MARGIN_MEDIUM = "7%";
         static constexpr const char *MARGIN_LARGE = "15%";
     };

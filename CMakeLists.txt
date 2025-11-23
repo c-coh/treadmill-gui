@@ -42,6 +42,11 @@ add_executable(main
 
 target_compile_features(main PRIVATE cxx_std_17)
 
+# Fix parallel compilation issue on MSVC
+if(MSVC)
+  target_compile_options(main PRIVATE /FS)
+endif()
+
 # Add the src directory and subdirectories to the include path so header files can be found
 target_include_directories(main PRIVATE
   src

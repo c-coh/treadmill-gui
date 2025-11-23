@@ -5,6 +5,10 @@
 #include "ui/ThemeManager.h"
 #include <iostream>
 
+// Shorter aliases for ThemeManager members
+using Colors = ThemeManager::Colors;
+using TextSizes = ThemeManager::TextSizes;
+
 TreadmillApp::TreadmillApp()
     : m_window(sf::VideoMode(sf::Vector2u(1200, 800)), "Treadmill Control System"), m_gui(m_window), m_running(false)
 {
@@ -22,46 +26,39 @@ bool TreadmillApp::initialize()
         m_themeManager = std::make_unique<ThemeManager>();
         m_themeManager->loadTheme();
 
+        // Initialize core systems
+        m_serialManager = std::make_shared<SerialManager>();
+
         // Create background panel
         m_backgroundPanel = tgui::Panel::create();
         m_backgroundPanel->setSize("100%", "100%");
-        m_backgroundPanel->getRenderer()->setBackgroundColor(ThemeManager::Colors::Background);
+        m_backgroundPanel->getRenderer()->setBackgroundColor(Colors::Background);
         m_gui.add(m_backgroundPanel);
 
         // Create title label
         m_titleLabel = tgui::Label::create("TREADMILL CONTROLLER");
-        m_titleLabel->setTextSize(ThemeManager::TextSizes::TITLE_LARGE);
+        m_titleLabel->setTextSize(TextSizes::TITLE_LARGE);
         m_titleLabel->setPosition("4%", "4%");
-        m_titleLabel->getRenderer()->setTextColor(ThemeManager::Colors::TextPrimary);
+        m_titleLabel->getRenderer()->setTextColor(Colors::TextPrimary);
         m_themeManager->setupFont(m_titleLabel);
         m_gui.add(m_titleLabel);
 
         // Initialize sub-panels
         m_speedPanel = std::make_unique<SpeedControlPanel>();
-        m_speedPanel->initialize(m_gui);
+        m_speedPanel->initialize(m_gui, m_serialManager);
 
         m_dataPanel = std::make_unique<DataPanel>();
         m_dataPanel->initialize(m_gui);
 
         m_testingPanel = std::make_unique<TestingPanel>();
-        m_testingPanel->initialize(m_gui);
+        m_testingPanel->initialize(m_gui, m_serialManager);
 
-        // Attempt to initialize the serial connection
-        if (!m_speedPanel->getSerialManager()->initialize("COM3", 9600))
-        {
-            std::cout << "Warning: Could not connect to Arduino on COM3. USB commands will not be sent." << std::endl;
-        }
+        // Initial status message
+        m_dataPanel->addStatusMessage("System initialized. Please select COM port and connect.");
 
-        // Set up event callbacks for speed control
-        m_speedPanel->setStartCallback([this](const std::string &speed)
-                                       {
-            std::cout << "Starting treadmill at speed: " << speed << std::endl;
-            m_dataPanel->addStatusMessage("Starting at " + speed); });
-
-        m_speedPanel->setStopCallback([this]()
-                                      {
-            std::cout << "Stop" << std::endl;
-            m_dataPanel->addStatusMessage("Treadmill stopped"); });
+        // Set up event callbacks
+        m_speedPanel->setStatusCallback([this](const std::string &message)
+                                        { m_dataPanel->addStatusMessage(message); });
 
         m_speedPanel->setUploadFileCallback([this](const std::string &filename, const std::string &content)
                                             {
@@ -128,7 +125,7 @@ void TreadmillApp::handleWindowResize(const sf::Event::Resized &resizeEvent)
 
 void TreadmillApp::render()
 {
-    m_window.clear(ThemeManager::Colors::WindowBackground);
+    m_window.clear(Colors::WindowBackground);
     m_gui.draw();
     m_window.display();
 }
