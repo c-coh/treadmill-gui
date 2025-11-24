@@ -11,9 +11,9 @@ using Borders = ThemeManager::Borders;
 TestingPanel::TestingPanel() = default;
 TestingPanel::~TestingPanel() = default;
 
-void TestingPanel::initialize(tgui::Gui &gui, std::shared_ptr<SerialManager> serialManager)
+void TestingPanel::initialize(tgui::Gui &gui, std::shared_ptr<TreadmillController> treadmillController)
 {
-    m_serialManager = serialManager;
+    m_treadmillController = treadmillController;
 
     // Main panel
     m_panel = tgui::Panel::create();
@@ -26,15 +26,15 @@ void TestingPanel::initialize(tgui::Gui &gui, std::shared_ptr<SerialManager> ser
     m_debugLabel->setPosition(Layout::MARGIN_SMALL, "8%");
 
     // Debugging buttons
-    m_debug1Button = tgui::Button::create("DEBUG SPEED");
+    m_debug1Button = tgui::Button::create("DEBUG 1");
     m_debug1Button->setSize("28%", Layout::TESTING_BUTTON_HEIGHT);
     m_debug1Button->setPosition(Layout::MARGIN_SMALL, "50%");
 
-    m_debug2Button = tgui::Button::create("DEBUG FORCE DATA");
+    m_debug2Button = tgui::Button::create("DEBUG 2");
     m_debug2Button->setSize("28%", Layout::TESTING_BUTTON_HEIGHT);
     m_debug2Button->setPosition("36%", "50%");
 
-    m_debug3Button = tgui::Button::create("DEBUG DATA");
+    m_debug3Button = tgui::Button::create("DEBUG 3");
     m_debug3Button->setSize("28%", Layout::TESTING_BUTTON_HEIGHT);
     m_debug3Button->setPosition("67%", "50%");
 

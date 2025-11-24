@@ -1,0 +1,37 @@
+Treadmill Controller Design Analysis & To-Do List
+
+1. CRITICAL GAP: Who reads the data?
+   - Current Status: Request-Response only (synchronous).
+   - Problem: When the treadmill runs, telemetry is sent continuously. Currently, nothing reads this data unless you explicitly call readResponse().
+   - Consequence: Data will pile up in the buffer, callbacks won't fire, and the UI won't update.
+
+2. ANALYSIS OF CURRENT DESIGN
+   [ ] Parsing Commands: Planned. SpeedControlPanel needs to convert UI inputs -> string vector.
+   [x] Protocol Handshake: Done. runTreadmill handles upload/start sequence.
+   [x] Telemetry Flow: MISSING. Need a "Read Loop" running in the background during execution.
+   [ ] Completion Detection: MISSING. Need to parse 'profileActive' flag from telemetry to know when to stop.
+   [ ] Non-Blocking UI: RISK. Cannot use a while loop in the GUI thread. Must be event-driven/threaded.
+
+3. DECISIONS TO MAKE
+   A. Threading Model
+      - Option A (Recommended): SerialManager spawns a background thread for continuous reading.
+      - Option B (Polling): GUI timer polls repeatedly (prone to lag).
+   
+   B. Telemetry Parsing
+      - Should TreadmillController parse raw strings into a struct (e.g., TelemetryData) before sending to UI? (Recommended).
+
+4. RECOMMENDED NEXT STEPS (Implementation Plan)
+
+   Step 1: Modify SerialManager for Continuous Async Reading
+   - Add `startListening()`: Spawns a background thread running io_context.run().
+   - Add `stopListening()`: Stops the thread.
+   - Ensure `async_read_until` loops automatically to keep processing incoming lines.
+
+   Step 2: Modify TreadmillController
+   - Call `startListening()` at the end of `runTreadmill()`.
+   - Call `stopListening()` in `stopTreadmill()` or when telemetry indicates completion.
+   - Implement a parser to convert raw telemetry strings into usable data structures.
+
+   Step 3: Update SpeedControlPanel
+   - Connect the UI to the TreadmillController's telemetry callback.
+   - Use the parsed data to update graphs/labels.

@@ -4,7 +4,10 @@
 #include <TGUI/Backend/SFML-Graphics.hpp>
 #include <TGUI/TGUI.hpp>
 #include <memory>
-#include "utils/SerialManager.h"
+#include <queue>
+#include <mutex>
+#include <functional>
+#include "utils/TreadmillController.h"
 
 class SpeedControlPanel;
 class DataPanel;
@@ -25,8 +28,16 @@ private:
     void handleWindowResize(const sf::Event::Resized &resizeEvent);
     void render();
 
+    // Thread-safe UI update queue
+    void queueUiUpdate(std::function<void()> updateFunc);
+    void processUiUpdates();
+
     sf::RenderWindow m_window;
     tgui::Gui m_gui;
+
+    // Thread-safe queue members
+    std::queue<std::function<void()>> m_uiQueue;
+    std::mutex m_uiQueueMutex;
 
     // UI Components
     std::unique_ptr<SpeedControlPanel> m_speedPanel;
@@ -35,7 +46,7 @@ private:
     std::unique_ptr<ThemeManager> m_themeManager;
 
     // Core Systems
-    std::shared_ptr<SerialManager> m_serialManager;
+    std::shared_ptr<TreadmillController> m_treadmillController;
 
     // Main UI elements
     tgui::Panel::Ptr m_backgroundPanel;

@@ -38,6 +38,7 @@ add_executable(main
   src/ui/ThemeManager.cpp
   src/utils/FileManager.cpp
   src/utils/SerialManager.cpp
+  src/utils/TreadmillController.cpp
 )
 
 target_compile_features(main PRIVATE cxx_std_17)

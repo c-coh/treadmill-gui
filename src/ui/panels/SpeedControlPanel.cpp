@@ -4,6 +4,7 @@
 #include <iostream>
 #include <algorithm>
 #include <sstream>
+#include <iomanip>
 
 // Shorter aliases for ThemeManager members
 using Layout = ThemeManager::Layout;
@@ -17,9 +18,9 @@ SpeedControlPanel::SpeedControlPanel()
 
 SpeedControlPanel::~SpeedControlPanel() = default;
 
-void SpeedControlPanel::initialize(tgui::Gui &gui, std::shared_ptr<SerialManager> serialManager)
+void SpeedControlPanel::initialize(tgui::Gui &gui, std::shared_ptr<TreadmillController> treadmillController)
 {
-    m_serialManager = serialManager;
+    m_treadmillController = treadmillController;
 
     // Create main panel
     m_panel = tgui::Panel::create();
@@ -33,9 +34,15 @@ void SpeedControlPanel::initialize(tgui::Gui &gui, std::shared_ptr<SerialManager
 
     // Speed input
     m_speedInput = tgui::TextArea::create();
-    m_speedInput->setSize(Layout::INPUT_WIDTH, "35%");
+    m_speedInput->setSize(Layout::INPUT_WIDTH, "30%");
     m_speedInput->setPosition(Layout::MARGIN_SMALL, "20%");
     m_speedInput->setDefaultText("Enter speed");
+
+    // Telemetry Display
+    m_telemetryLabel = tgui::Label::create("Telemetry: Not Running");
+    m_telemetryLabel->setTextSize(TextSizes::LABEL_SMALL);
+    m_telemetryLabel->setPosition(Layout::MARGIN_SMALL, "52%");
+    m_telemetryLabel->setSize(Layout::PANEL_WIDTH, "8%");
 
     // Port selection
     m_portLabel = tgui::Label::create("PORT:");
@@ -51,7 +58,7 @@ void SpeedControlPanel::initialize(tgui::Gui &gui, std::shared_ptr<SerialManager
     m_connectButton = tgui::Button::create("CONNECT");
     m_connectButton->setSize("25%", Layout::SPEED_BUTTON_HEIGHT);
     m_connectButton->setPosition("40%", "60%");
-    
+
     // Start button
     m_startButton = tgui::Button::create("START");
     m_startButton->setSize("20%", Layout::SPEED_BUTTON_HEIGHT);
@@ -84,6 +91,7 @@ void SpeedControlPanel::initialize(tgui::Gui &gui, std::shared_ptr<SerialManager
     m_panel->add(m_portLabel);
     m_panel->add(m_portInput);
     m_panel->add(m_connectButton);
+    m_panel->add(m_telemetryLabel);
     m_panel->add(m_startButton);
     m_panel->add(m_stopButton);
     m_panel->add(m_uploadSpeedButton);
@@ -91,6 +99,10 @@ void SpeedControlPanel::initialize(tgui::Gui &gui, std::shared_ptr<SerialManager
 
     // Add panel to GUI
     gui.add(m_panel);
+
+    // Register telemetry callback
+    m_treadmillController->setTelemetryCallback([this](const TelemetryData &data)
+                                                { updateTelemetryUI(data); });
 
     // File dialog will be created and added when needed
 }
@@ -121,6 +133,9 @@ void SpeedControlPanel::setupStyling()
     m_portInput->getRenderer()->setBorderColor(Colors::TextAreaBorder);
     m_portInput->getRenderer()->setBorders({Borders::ELEMENT_WIDTH});
     m_portInput->getRenderer()->setRoundedBorderRadius(Borders::INPUT_RADIUS);
+
+    // Telemetry styling
+    m_telemetryLabel->getRenderer()->setTextColor(Colors::TextPrimary);
 
     ThemeManager::styleButton(m_connectButton, Colors::ButtonDefault,
                               Colors::DefaultButtonHover, Colors::DefaultButtonDown,
@@ -156,7 +171,7 @@ void SpeedControlPanel::connectEvents()
             return;
         }
         
-        if (m_serialManager->initialize(port, 115200)) {
+        if (m_treadmillController->initialize(port, 500000)) {
             if (m_statusCallback) m_statusCallback("Successfully connected to " + port);
             m_connectButton->setText("CONNECTED");
             m_connectButton->getRenderer()->setBackgroundColor(Colors::ButtonDefault); // Keep green
@@ -172,9 +187,9 @@ void SpeedControlPanel::connectEvents()
         
         // Check if we have valid commands to send
         if (!m_motorCommands.empty()) {
-            // Send all commands at once using the serial protocol
-            // Status messages are now handled by SerialManager
-            m_serialManager->runTreadmill(m_motorCommands);
+            // Send all commands at once using the treadmill controller
+            // Status messages are now handled by TreadmillController
+            m_treadmillController->runTreadmill(m_motorCommands);
         } else {
             std::cerr << "No valid motor commands to send!" << std::endl;
             if (m_statusCallback) {
@@ -184,9 +199,9 @@ void SpeedControlPanel::connectEvents()
 
     m_stopButton->onPress([this]()
                           {
-        // Send stop command using serial protocol
-        // Status messages are now handled by SerialManager
-        m_serialManager->stopTreadmill(); });
+        // Send stop command using treadmill controller
+        // Status messages are now handled by TreadmillController
+        m_treadmillController->stopTreadmill(); });
 
     m_uploadSpeedButton->onPress([this]()
                                  { openFileDialog(true); });
@@ -198,8 +213,28 @@ void SpeedControlPanel::connectEvents()
 void SpeedControlPanel::setStatusCallback(std::function<void(const std::string &)> callback)
 {
     m_statusCallback = callback;
-    // Also forward the callback to SerialManager so it can send status updates
-    m_serialManager->setStatusCallback(callback);
+    // Also forward the callback to TreadmillController so it can send status updates
+    // Intercept to handle "FINISHED" state
+    m_treadmillController->setStatusCallback([this, callback](const std::string &msg)
+                                             {
+        if (msg == "FINISHED") {
+            // Re-enable start button, disable stop button if needed
+            // For now just log it, or update UI state if we had specific state management
+            if (callback) callback("Run finished successfully");
+        } else {
+            if (callback) callback(msg);
+        } });
+}
+
+void SpeedControlPanel::updateTelemetryUI(const TelemetryData &data)
+{
+    std::stringstream ss;
+    ss << "L: " << std::fixed << std::setprecision(1) << data.actualRpm1 << " / " << data.targetRpm1 << " RPM  |  "
+       << "R: " << data.actualRpm2 << " / " << data.targetRpm2 << " RPM\n"
+       << "Time: " << (data.timestamp / 1000.0) << "s  |  "
+       << "Drivers: " << (data.driver1Healthy ? "OK" : "ERR") << "/" << (data.driver2Healthy ? "OK" : "ERR");
+
+    m_telemetryLabel->setText(ss.str());
 }
 
 void SpeedControlPanel::setUploadFileCallback(std::function<void(const std::string &, const std::string &)> callback)

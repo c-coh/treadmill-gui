@@ -3,7 +3,7 @@
 #include <TGUI/TGUI.hpp>
 #include <TGUI/Backend/SFML-Graphics.hpp>
 #include <TGUI/Widgets/FileDialog.hpp>
-#include "utils/SerialManager.h"
+#include "utils/TreadmillController.h"
 #include <functional>
 #include <memory>
 #include <vector>
@@ -16,7 +16,7 @@ public:
     SpeedControlPanel();
     ~SpeedControlPanel();
 
-    void initialize(tgui::Gui &gui, std::shared_ptr<SerialManager> serialManager);
+    void initialize(tgui::Gui &gui, std::shared_ptr<TreadmillController> treadmillController);
 
     // Command parsing and management
     bool parseSpeedCommands();
@@ -28,7 +28,9 @@ public:
 
     // Getters for file operations
     tgui::TextArea::Ptr getSpeedInput() const { return m_speedInput; }
-    SerialManager *getSerialManager() const { return m_serialManager.get(); }
+    TreadmillController *getTreadmillController() const { return m_treadmillController.get(); }
+
+    void updateTelemetryUI(const TelemetryData &data);
 
 private:
     void setupStyling();
@@ -51,9 +53,12 @@ private:
     tgui::EditBox::Ptr m_portInput;
     tgui::Button::Ptr m_connectButton;
 
+    // Telemetry display
+    tgui::Label::Ptr m_telemetryLabel;
+
     tgui::FileDialog::Ptr m_fileDialog;
 
-    std::shared_ptr<SerialManager> m_serialManager;
+    std::shared_ptr<TreadmillController> m_treadmillController;
     std::vector<std::string> m_motorCommands;
 
     // Callbacks
