@@ -3,6 +3,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <filesystem>
+#include <cstdlib>
 
 std::string FileManager::readFile(const std::string &filepath)
 {
@@ -68,4 +69,29 @@ std::string FileManager::getExtension(const std::string &filepath)
         return filepath.substr(dotPos);
     }
     return "";
+}
+
+std::string FileManager::getDownloadsPath()
+{
+    std::filesystem::path downloadsPath;
+#ifdef _WIN32
+    const char *userProfile = std::getenv("USERPROFILE");
+    if (userProfile)
+    {
+        downloadsPath = std::filesystem::path(userProfile) / "Downloads";
+    }
+#else
+    const char *home = std::getenv("HOME");
+    if (home)
+    {
+        downloadsPath = std::filesystem::path(home) / "Downloads";
+    }
+#endif
+
+    if (!downloadsPath.empty() && std::filesystem::exists(downloadsPath))
+    {
+        return downloadsPath.string();
+    }
+
+    return std::filesystem::current_path().string();
 }

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <thread> // Added for background execution
 
 // Shorter aliases for ThemeManager members
 using Layout = ThemeManager::Layout;
@@ -189,7 +190,15 @@ void SpeedControlPanel::connectEvents()
         if (!m_motorCommands.empty()) {
             // Send all commands at once using the treadmill controller
             // Status messages are now handled by TreadmillController
-            m_treadmillController->runTreadmill(m_motorCommands);
+            
+            // Run in a background thread to prevent UI freezing during protocol handshake
+            std::vector<std::string> commands = m_motorCommands; // Copy commands
+            auto controller = m_treadmillController; // Keep controller alive
+            
+            std::thread([controller, commands]() {
+                controller->runTreadmill(commands);
+            }).detach();
+            
         } else {
             std::cerr << "No valid motor commands to send!" << std::endl;
             if (m_statusCallback) {
@@ -261,6 +270,15 @@ void SpeedControlPanel::setupFileDialog()
                                       {"All files", {"*.*"}}});
     m_fileDialog->setSelectingDirectory(false);
     m_fileDialog->setMultiSelect(false);
+
+    try
+    {
+        m_fileDialog->setPath(FileManager::getDownloadsPath());
+    }
+    catch (...)
+    {
+        // Fallback to default if setting path fails
+    }
 }
 
 void SpeedControlPanel::openFileDialog(bool isLoadDialog)
@@ -272,6 +290,13 @@ void SpeedControlPanel::openFileDialog(bool isLoadDialog)
         // Configure for save dialog
         m_fileDialog->setFilename("speed_config.txt");
         m_fileDialog->setFilenameLabelText("Save as:");
+        m_fileDialog->setFileMustExist(false);
+        m_fileDialog->setConfirmButtonText("Save");
+    }
+    else
+    {
+        m_fileDialog->setFileMustExist(true);
+        m_fileDialog->setConfirmButtonText("Open");
     }
 
     // File select callback
@@ -381,35 +406,20 @@ const std::vector<std::string> &SpeedControlPanel::getMotorCommands() const
 
 std::string SpeedControlPanel::generateConfigContent() const
 {
-    std::stringstream content;
+    std::string inputText = m_speedInput->getText().toStdString();
 
-    // If we have parsed motor commands, use those
-    if (!m_motorCommands.empty())
+    // If the input is empty or just the default text, generate a template
+    if (inputText.empty() || inputText == "Enter speed")
     {
-        content << "# Generated Speed Configuration\n";
-        content << "# Format: L:{left_speed} R:{right_speed} T:{time}\n\n";
-
-        for (const auto &cmd : m_motorCommands)
-        {
-            content << cmd << "\n";
-        }
-    }
-    // Otherwise, use the raw text from the input area
-    else
-    {
-        std::string inputText = m_speedInput->getText().toStdString();
-        if (inputText.empty() || inputText == "Enter speed")
-        {
-            content << "# Empty Speed Configuration\n";
-            content << "# Add commands in format: L:{left_speed} R:{right_speed} T:{time}\n";
-            content << "# Example:\n";
-            content << "# L:1.5 R:2.0 T:3.0\n";
-        }
-        else
-        {
-            content << inputText;
-        }
+        std::stringstream content;
+        content << "# Empty Speed Configuration\n";
+        content << "# Add commands in format: L:{left_speed} R:{right_speed} T:{time}\n";
+        content << "# Example:\n";
+        content << "# L:1.5 R:2.0 T:3.0\n";
+        return content.str();
     }
 
-    return content.str();
+    // Otherwise, save exactly what is in the text area
+    // This ensures that any edits made by the user (even if not yet run) are saved
+    return inputText;
 }

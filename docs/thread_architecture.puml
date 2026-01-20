@@ -1,0 +1,48 @@
+@startuml Thread Architecture
+
+title Treadmill Application Thread Architecture
+
+package "UI Layer" {
+  [Main UI Thread] as MainThread
+  note right of MainThread
+    - SFML Event Loop
+    - TGUI Widget Rendering
+    - Process UI Update Queue
+  end note
+}
+
+package "Business Logic" {
+  [Background Worker Thread] as WorkerThread
+  note right of WorkerThread
+    - runTreadmill() execution
+    - Protocol handshake (blocking)
+    - Command upload (blocking)
+  end note
+}
+
+package "I/O Layer" {
+  [ASIO IO Context Thread] as IOThread
+  note right of IOThread
+    - Asynchronous Serial I/O
+    - Heartbeat Timer (async_wait)
+    - Telemetry Listener (async_read)
+  end note
+}
+
+database "Thread-Safe Queue" as Queue {
+  [UI Update Queue]
+  note right
+    Mutex-protected
+    Telemetry updates
+    Status callbacks
+  end note
+}
+
+MainThread --> Queue : processUiUpdates()
+WorkerThread --> Queue : queueUiUpdate()
+IOThread --> Queue : queueUiUpdate()
+
+WorkerThread --> IOThread : Uses SerialManager
+IOThread --> WorkerThread : Callback notifications
+
+@enduml

@@ -96,7 +96,7 @@ void SerialManager::startListening()
     }
 
     m_isListening = true;
-    m_ioContext->restart(); // Reset io_context for new work
+    m_ioContext->restart();
 
     // Queue the first read
     startAsyncRead();
@@ -119,15 +119,12 @@ void SerialManager::stopListening()
     // Check if we are calling stopListening from the listening thread itself
     if (std::this_thread::get_id() == m_listeningThread.get_id())
     {
-        // We cannot join the thread from itself.
-        // Just signal stop and let the thread exit naturally.
         m_isListening = false;
         if (m_serialPort)
         {
             m_serialPort->cancel();
         }
         m_ioContext->stop();
-        // The thread will exit after the current handler returns
         return;
     }
 
@@ -169,7 +166,7 @@ void SerialManager::startAsyncRead()
                                    std::string line;
                                    std::getline(is, line);
 
-                                   // Remove trailing \r
+                                   // Remove trailing \r, if it exists
                                    if (!line.empty() && line.back() == '\r')
                                    {
                                        line.pop_back();
@@ -186,7 +183,6 @@ void SerialManager::startAsyncRead()
                                else if (ec != asio::error::operation_aborted)
                                {
                                    std::cerr << "Async read error: " << ec.message() << std::endl;
-                                   // Optionally try to reconnect or stop listening
                                }
                            });
 }
@@ -210,11 +206,16 @@ void SerialManager::sendCommand(std::string_view cmd)
         throw std::runtime_error("Serial connection not available");
     }
 
-    std::string message = std::string(cmd) + "\n"; // append newline for Arduino parsing
+    std::string message = std::string(cmd) + "\n";
     asio::write(*m_serialPort, asio::buffer(message));
 }
 
 std::optional<std::string> SerialManager::readResponse()
+{
+    return readResponse(m_timeoutMs);
+}
+
+std::optional<std::string> SerialManager::readResponse(int timeoutMs)
 {
     if (!isConnected())
     {
@@ -231,7 +232,7 @@ std::optional<std::string> SerialManager::readResponse()
 
         // Create a timer for timeout
         asio::steady_timer timer(*m_ioContext);
-        timer.expires_after(std::chrono::milliseconds(m_timeoutMs));
+        timer.expires_after(std::chrono::milliseconds(timeoutMs));
 
         // Start async read
         asio::async_read_until(*m_serialPort, buffer, '\n',
@@ -248,7 +249,7 @@ std::optional<std::string> SerialManager::readResponse()
                                            std::istream is(&buffer);
                                            std::string line;
                                            std::getline(is, line);
-                                           // Remove trailing \r if present (Windows line ending)
+                                           // Remove trailing \r, if it exists
                                            if (!line.empty() && line.back() == '\r')
                                            {
                                                line.pop_back();
@@ -258,23 +259,30 @@ std::optional<std::string> SerialManager::readResponse()
                                    }
                                });
 
-        // Start timer
+        // Start the timer
         timer.async_wait([&](const asio::error_code &ec)
                          {
                 if (!completed && !ec)
                 {
                     completed = true;
-                    std::cerr << "Timeout waiting for response (" << m_timeoutMs << "ms)" << std::endl;
-                    m_serialPort->cancel(); // Cancel the read operation
+                    // Only log timeout if its unusually long
+                    if (timeoutMs > 100) {
+                        std::cerr << "Timeout waiting for response (" << timeoutMs << "ms)" << std::endl;
+                    }
+                    m_serialPort->cancel();
                 } });
 
-        // Reset io_context and run until one operation completes
+        // Reset context and run until one operation completes
         m_ioContext->restart();
         m_ioContext->run();
 
         if (readError)
         {
-            std::cerr << "Error reading response: " << readError.message() << std::endl;
+            // Don't log error if operation was aborted due to timeout
+            if (readError != asio::error::operation_aborted)
+            {
+                std::cerr << "Error reading response: " << readError.message() << std::endl;
+            }
             return std::nullopt;
         }
 

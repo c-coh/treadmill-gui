@@ -91,4 +91,6 @@ private:
     void updateStatus(const std::string &message);
     void logError(const std::string &message, const std::optional<std::string> &response = std::nullopt);
     void handleRawTelemetry(const std::string &rawData);
+    void purgeBuffer();
+    bool synchronizeWithDevice();
 };

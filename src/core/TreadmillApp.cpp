@@ -3,7 +3,9 @@
 #include "ui/panels/TestingPanel.h"
 #include "ui/panels/DataPanel.h"
 #include "ui/ThemeManager.h"
+#include "utils/FileManager.h"
 #include <iostream>
+#include <sstream>
 
 // Shorter aliases for ThemeManager members
 using Colors = ThemeManager::Colors;
@@ -60,7 +62,14 @@ bool TreadmillApp::initialize()
         // Use queueUiUpdate to ensure thread safety for callbacks coming from background threads
         m_speedPanel->setStatusCallback([this](const std::string &message)
                                         { queueUiUpdate([this, message]()
-                                                        { m_dataPanel->addStatusMessage(message); }); });
+                                                        { 
+                                                            if (message == "FINISHED") {
+                                                                m_dataPanel->addStatusMessage("----------------------------------------");
+                                                                m_dataPanel->addStatusMessage("       ALL COMMANDS COMPLETED");
+                                                                m_dataPanel->addStatusMessage("----------------------------------------");
+                                                            } else {
+                                                                m_dataPanel->addStatusMessage(message); 
+                                                            } }); });
 
         m_speedPanel->setUploadFileCallback([this](const std::string &filename, const std::string &content)
                                             {
@@ -84,8 +93,19 @@ bool TreadmillApp::initialize()
 
         // Re-register the telemetry callback with thread safety
         m_treadmillController->setTelemetryCallback([this](const TelemetryData &data)
-                                                    { queueUiUpdate([this, data]()
+                                                    { 
+                                                        // Store data (Thread Safe)
+                                                        {
+                                                            std::lock_guard<std::mutex> lock(m_dataMutex);
+                                                            m_telemetryHistory.push_back(data);
+                                                        }
+
+                                                        queueUiUpdate([this, data]()
                                                                     { m_speedPanel->updateTelemetryUI(data); }); });
+
+        // Connect Download Button
+        m_dataPanel->setDownloadDataButtonCallback([this](const std::string &filename)
+                                                   { saveTelemetryToCSV(filename); });
 
         std::cout << "All components initialized." << std::endl;
         m_running = true;
@@ -167,4 +187,35 @@ void TreadmillApp::render()
     m_window.clear(Colors::WindowBackground);
     m_gui.draw();
     m_window.display();
+}
+
+void TreadmillApp::saveTelemetryToCSV(const std::string &filename)
+{
+    std::lock_guard<std::mutex> lock(m_dataMutex);
+
+    std::stringstream ss;
+    // Header
+    ss << "Timestamp,TargetL,ActualL,TargetR,ActualR,Driver1Health,Driver2Health,EStop\n";
+
+    // Data
+    for (const auto &data : m_telemetryHistory)
+    {
+        ss << data.timestamp << ", "
+           << data.targetRpm1 << ", " << data.actualRpm1 << ", "
+           << data.targetRpm2 << ", " << data.actualRpm2 << ", "
+           << data.driver1Healthy << ", " << data.driver2Healthy << ", "
+           << data.emergencyStop << "\n";
+    }
+
+    try
+    {
+        // Ensure extension is .csv
+        std::string finalPath = FileManager::ensureExtension(filename, ".csv");
+        FileManager::writeFile(finalPath, ss.str());
+        m_dataPanel->addStatusMessage("Data saved to: " + finalPath);
+    }
+    catch (const std::exception &e)
+    {
+        m_dataPanel->addStatusMessage("Error saving data: " + std::string(e.what()));
+    }
 }

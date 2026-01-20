@@ -43,12 +43,10 @@ add_executable(main
 
 target_compile_features(main PRIVATE cxx_std_17)
 
-# Fix parallel compilation issue on MSVC
 if(MSVC)
   target_compile_options(main PRIVATE /FS)
 endif()
 
-# Add the src directory and subdirectories to the include path so header files can be found
 target_include_directories(main PRIVATE
   src
   src/core
@@ -64,11 +62,9 @@ target_link_libraries(main PRIVATE
   TGUI::TGUI
 )
 
-# Add asio include directory
 target_include_directories(main PRIVATE ${asio_SOURCE_DIR}/asio/include)
 
-# Define ASIO_STANDALONE to use asio without Boost
 target_compile_definitions(main PRIVATE
   ASIO_STANDALONE
-  _WIN32_WINNT=0x0A00 # Windows 10
+  _WIN32_WINNT=0x0A00
 )

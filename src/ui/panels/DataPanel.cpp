@@ -1,5 +1,6 @@
 #include "DataPanel.h"
 #include "ui/ThemeManager.h"
+#include "utils/FileManager.h"
 
 // Shorter aliases for ThemeManager members
 using Layout = ThemeManager::Layout;
@@ -69,14 +70,54 @@ void DataPanel::setupStyling()
                               Colors::DefaultButtonBorder);
 }
 
-void DataPanel::setDownloadDataButtonCallback(std::function<void()> callback)
+void DataPanel::setDownloadDataButtonCallback(std::function<void(const std::string &)> callback)
 {
     m_downloadDataButtonCallback = std::move(callback);
     m_downloadDataButton->onPress([this]()
-                                  {
-        if (m_downloadDataButtonCallback) {
-            m_downloadDataButtonCallback();
-        } });
+                                  { openSaveDialog(); });
+}
+
+void DataPanel::cleanupFileDialog()
+{
+    if (m_fileDialog && m_fileDialog->getParent())
+    {
+        m_fileDialog->getParent()->remove(m_fileDialog);
+    }
+}
+
+void DataPanel::openSaveDialog()
+{
+    cleanupFileDialog();
+
+    m_fileDialog = tgui::FileDialog::create();
+    m_fileDialog->setFileMustExist(false);
+    m_fileDialog->setFilename("telemetry_data.csv");
+    m_fileDialog->setFilenameLabelText("Save as:");
+    m_fileDialog->setConfirmButtonText("Save");
+
+    try
+    {
+        m_fileDialog->setPath(FileManager::getDownloadsPath());
+    }
+    catch (...)
+    {
+    }
+
+    m_fileDialog->onFileSelect([this](const std::vector<tgui::Filesystem::Path> &files)
+                               {
+        if (!files.empty() && m_downloadDataButtonCallback) {
+            std::string filepath = files[0].asString().toStdString();
+            m_downloadDataButtonCallback(filepath);
+        }
+        cleanupFileDialog(); });
+
+    m_fileDialog->onClose([this]()
+                          { cleanupFileDialog(); });
+
+    if (m_panel && m_panel->getParent())
+    {
+        m_panel->getParent()->add(m_fileDialog);
+    }
 }
 
 void DataPanel::addStatusMessage(const std::string &message)

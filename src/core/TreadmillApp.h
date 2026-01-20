@@ -32,6 +32,13 @@ private:
     void queueUiUpdate(std::function<void()> updateFunc);
     void processUiUpdates();
 
+    // Telemetry History
+    std::vector<TelemetryData> m_telemetryHistory;
+    std::mutex m_dataMutex;
+
+    // Helper to save data
+    void saveTelemetryToCSV(const std::string &filename);
+
     sf::RenderWindow m_window;
     tgui::Gui m_gui;
 

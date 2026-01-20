@@ -13,17 +13,20 @@ public:
 
     void addStatusMessage(const std::string &message);
     void clearData();
-    void setDownloadDataButtonCallback(std::function<void()> callback);
+    void setDownloadDataButtonCallback(std::function<void(const std::string &)> callback);
 
     // Getters for data operations
     tgui::TextArea::Ptr getStatusText() const { return m_statusText; }
 
 private:
     void setupStyling();
+    void openSaveDialog();
+    void cleanupFileDialog();
 
     tgui::Panel::Ptr m_panel;
     tgui::Label::Ptr m_statusTitle;
     tgui::TextArea::Ptr m_statusText;
     tgui::Button::Ptr m_downloadDataButton;
-    std::function<void()> m_downloadDataButtonCallback;
+    tgui::FileDialog::Ptr m_fileDialog;
+    std::function<void(const std::string &)> m_downloadDataButtonCallback;
 };

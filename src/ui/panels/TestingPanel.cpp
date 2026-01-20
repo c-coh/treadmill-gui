@@ -1,6 +1,8 @@
 #include "TestingPanel.h"
 #include "ui/ThemeManager.h"
 #include <iostream>
+#include <thread>
+#include <vector>
 
 // Shorter aliases for ThemeManager members
 using Layout = ThemeManager::Layout;
@@ -81,6 +83,14 @@ void TestingPanel::connectEvents()
 {
     m_debug1Button->onPress([this]()
                             {
+        // Debug 1: Run command L:20 R:20 T:10
+        std::vector<std::string> commands = {"L:20 R:20 T:10"};
+        auto controller = m_treadmillController;
+        
+        std::thread([controller, commands]() {
+            controller->runTreadmill(commands);
+        }).detach();
+
         if (m_debug1ButtonCallback) {
             m_debug1ButtonCallback();
         } });

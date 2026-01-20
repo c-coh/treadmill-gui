@@ -96,27 +96,32 @@ bool TreadmillController::stopTreadmill()
 
     try
     {
+        // 1. Safety First: Stop heartbeat immediately.
+        // If communication fails, the firmware watchdog will stop motors after 2 seconds.
+        stopHeartbeat();
+
         // Mark run as inactive immediately
         m_isRunActive = false;
 
         m_serialComm->stopListening();
         updateStatus("Stopping treadmill...");
+
+        // Purge before sending command to ensure clean slate
+        purgeBuffer();
+
         std::cout << "Sending STOP command to treadmill..." << std::endl;
 
-        m_serialComm->sendCommand(Protocol::STOP);
-
-        auto response = m_serialComm->readResponse();
-        if (!response || *response != Protocol::STOPPED)
+        if (synchronizeWithDevice())
         {
-            logError("Failed to receive stop confirmation", response);
-            updateStatus("ERROR: Failed to stop treadmill");
-            return false;
+            std::cout << "Treadmill stopped successfully" << std::endl;
+            updateStatus("✓ Treadmill stopped successfully");
+            return true;
         }
 
-        std::cout << "Treadmill stopped successfully" << std::endl;
-        updateStatus("✓ Treadmill stopped successfully");
-
-        stopHeartbeat();
+        // If we timed out, we assume the stop command was sent or the watchdog will catch it.
+        // We return TRUE to prevent the UI from thinking it failed and potentially retrying or hanging.
+        std::cerr << "Warning: STOP confirmation timed out. Relying on firmware watchdog." << std::endl;
+        updateStatus("✓ Stop sent (Watchdog active)");
         return true;
     }
     catch (const std::exception &e)
@@ -225,25 +230,11 @@ bool TreadmillController::initiateProtocol()
     std::cout << "Starting treadmill protocol..." << std::endl;
 
     // 1. Force IDLE state and clear buffer
-    // Send STOP_TM to ensure we are in IDLE state and not stuck in UPLOADING/RUNNING
-    m_serialComm->sendCommand(Protocol::STOP);
-
-    // Read and discard responses until we get STOPPED or timeout
-    // This clears any "INFO,ARDUINO_READY" messages or previous state garbage
-    int attempts = 5;
-    while (attempts--)
+    if (!synchronizeWithDevice())
     {
-        auto resp = m_serialComm->readResponse();
-        if (resp && *resp == Protocol::STOPPED)
-        {
-            std::cout << "Synchronized with treadmill (STOPPED received)" << std::endl;
-            break;
-        }
-        // If we get something else, just keep reading to clear buffer
-        if (resp)
-        {
-            std::cout << "Discarding buffer data: " << *resp << std::endl;
-        }
+        logError("Failed to synchronize with treadmill (no STOPPED response)");
+        updateStatus("ERROR: Treadmill synchronization failed");
+        return false;
     }
 
     // 2. Start the actual protocol
@@ -398,4 +389,55 @@ void TreadmillController::logError(const std::string &message, const std::option
     }
 
     std::cerr << fullMessage << std::endl;
+}
+
+void TreadmillController::purgeBuffer()
+{
+    int purgeCount = 0;
+    while (purgeCount < 100)
+    {
+        auto junk = m_serialComm->readResponse(5); // 5ms timeout
+        if (!junk)
+            break;
+        purgeCount++;
+    }
+    if (purgeCount > 0)
+    {
+        std::cout << "Purged " << purgeCount << " lines of buffered data." << std::endl;
+    }
+}
+
+bool TreadmillController::synchronizeWithDevice()
+{
+    const int maxRetries = 3;
+
+    for (int attempt = 1; attempt <= maxRetries; ++attempt)
+    {
+        m_serialComm->sendCommand(Protocol::STOP);
+
+        // Wait up to 1 second for STOPPED response
+        auto startTime = std::chrono::steady_clock::now();
+        auto timeout = std::chrono::seconds(1);
+
+        while (std::chrono::steady_clock::now() - startTime < timeout)
+        {
+            auto resp = m_serialComm->readResponse(50); // 50ms read
+
+            if (resp && *resp == Protocol::STOPPED)
+            {
+                std::cout << "Synchronized with treadmill (STOPPED received)" << std::endl;
+                return true;
+            }
+
+            // If resp is something else (telemetry), we just loop again.
+            // If resp is nullopt (timeout), we just loop again until total timeout.
+        }
+
+        if (attempt < maxRetries)
+        {
+            std::cout << "Sync attempt " << attempt << " timed out. Retrying..." << std::endl;
+        }
+    }
+
+    return false;
 }

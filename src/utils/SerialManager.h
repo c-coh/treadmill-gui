@@ -46,6 +46,7 @@ public:
     // Basic I/O operations
     void sendCommand(std::string_view cmd);
     std::optional<std::string> readResponse();
+    std::optional<std::string> readResponse(int timeoutMs);
 
     // Async Listening Mode
     void startListening();
